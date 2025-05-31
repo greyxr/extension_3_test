@@ -6,6 +6,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // Listen for messages from content script and popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('onMessage', message);
     // Handle credential API calls
     if (message.type === 'CREDENTIAL_API_CALL') {
         // Get current count from storage and increment
