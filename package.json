@@ -1,6 +1,13 @@
 {
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
   "devDependencies": {
+    "@types/cbor": "^5.0.1",
+    "@types/chrome": "^0.0.326",
     "@types/loglevel": "^1.5.4",
-    "loglevel-plugin-prefix": "^0.8.4"
+    "loglevel-plugin-prefix": "^0.8.4",
+    "typescript": "^5.8.3"
   }
 }
