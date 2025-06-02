@@ -8,7 +8,7 @@ window.addEventListener('message', function(event) {
     // Only accept messages from the same window
     if (event.source !== window) return;
     
-    if (event.data && event.data.type === 'CREDENTIAL_API_CALL') {
+    if (event.data) {
         // Relay the message to the background script
         chrome.runtime.sendMessage(event.data);
     }
