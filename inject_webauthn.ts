@@ -1,6 +1,6 @@
 import { getLogger } from './logging';
 import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from './utils';
-import { WebAuthnRequestMessage } from './types';
+import { WebAuthnRequestMessage } from './types/types';
 const log = getLogger('inject_webauthn');
 
 (() => {

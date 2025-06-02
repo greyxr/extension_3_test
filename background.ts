@@ -34,12 +34,7 @@
 // Old extension
 
 import { AttackHook } from './attacks/attack_hook.ts';
-import { AttackHookCloneDetection } from './attacks/attack_hook_clone_detection.ts';
-import { AttackHookDoubleBinding2 } from './attacks/attack_hook_double_binding2.ts';
-import { AttackHookDoubleBinding1 } from './attacks/attack_hook_double_binding1.ts';
-import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding.ts';
 import { AttackHookNone } from './attacks/attack_hook_none.ts';
-import { AttackHookSyncLogin } from './attacks/attack_hook_sync_login.ts';
 // import { getLogger } from './logging.js';
 
 // const log = getLogger('background');
@@ -200,19 +195,19 @@ const sign = async (msg, sender) => {
 function convertAttackToHook(attackName) {
     switch(attackName) {
         case 'attack-mis-binding':
-            attackType = new AttackHookMisBinding();
+            attackType = new AttackHookNone();
             break;
         case 'attack-double-binding1':
-            attackType = new AttackHookDoubleBinding1();
+            attackType = new AttackHookNone();
             break;
         case 'attack-double-binding2':
-            attackType = new AttackHookDoubleBinding2();
+            attackType = new AttackHookNone();
             break;
         case 'attack-clone-detection':
-            attackType = new AttackHookCloneDetection();
+            attackType = new AttackHookNone();
             break;
         case 'attack-sync-login':
-            attackType = new AttackHookSyncLogin();
+            attackType = new AttackHookNone();
             break;
         default:
             attackType = new AttackHookNone();
