@@ -1,4 +1,4 @@
-import { AttackHook } from './attack_hook';
+import { AttackHook } from './attack_hook.js';
 export class AttackHookNone extends AttackHook {
     getName() {
         return 'attack-none';

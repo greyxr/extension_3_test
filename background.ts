@@ -48,17 +48,17 @@ chrome.runtime.onInstalled.addListener(() => {
 let attackType: AttackHook | null = null;  // Initialize as null
 
 // Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
-// async function refreshAttackType() {
-//     chrome.storage.local.get(['attackType'], (result) => {
-//         if (result.attackType) {
-//             convertAttackToHook(result.attackType);
-//         } else {
-//             // Default to none if nothing in storage
-//             attackType = new AttackHookNone();
-//             chrome.storage.local.set({ attackType: 'none' });
-//         }
-//     });
-// }
+async function refreshAttackType() {
+    chrome.storage.local.get(['attackType'], (result) => {
+        if (result.attackType) {
+            convertAttackToHook(result.attackType);
+        } else {
+            // Default to none if nothing in storage
+            attackType = new AttackHookNone();
+            chrome.storage.local.set({ attackType: 'none' });
+        }
+    });
+}
 
 /**
  * Listens for web requests before they are sent and handles specific authentication flows
@@ -247,21 +247,21 @@ async function sendPassToOrigValue() {
 }
 
 function getAttackType() {
-    // return new Promise((resolve) => {
-    //     if (attackType) {
-    //         resolve(attackType);
-    //     } else {
-    //         chrome.storage.local.get(['attackType'], (attackName) => {
-    //             if (attackName) {
-    //                 convertAttackToHook(attackName);
-    //             } else {
-    //                 attackType = new AttackHookNone();
-    //                 chrome.storage.local.set({ attackType: 'none' });
-    //             }
-    //             resolve(attackType);
-    //         });
-    //     }
-    // });
+    return new Promise((resolve) => {
+        if (attackType) {
+            resolve(attackType);
+        } else {
+            chrome.storage.local.get(['attackType'], (attackName) => {
+                if (attackName) {
+                    convertAttackToHook(attackName);
+                } else {
+                    attackType = new AttackHookNone();
+                    chrome.storage.local.set({ attackType: 'none' });
+                }
+                resolve(attackType);
+            });
+        }
+    });
 }
 
 async function setAttackType(attackName) {
@@ -270,14 +270,8 @@ async function setAttackType(attackName) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log('Received form data:', msg);
-    try {
-        attackType = new AttackHookNone();
-        console.log('Successfully created AttackHookNone instance');
-    } catch (error) {
-        console.error('Error creating AttackHookNone:', error);
-    }
-    // (async () => { await refreshAttackType(); })();
-    // console.log('Attack type:', attackType?.getName());
+    (async () => { await refreshAttackType(); })();
+    console.log('Attack type:', attackType?.getName());
     (async () => {
         switch (msg.type) {
             case 'attack-type-change':
