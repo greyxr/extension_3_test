@@ -1,9 +1,9 @@
+"use strict";
 // Initialize counter when extension is installed
 // chrome.runtime.onInstalled.addListener(() => {
 //     chrome.storage.local.set({ callCount: 0 });
 //     console.log('[Background] Extension installed');
 // });
-
 // // Listen for messages from content script and popup
 // chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 //     console.log('onMessage', message);
@@ -30,23 +30,16 @@
 //         console.log(`[${source}]`, message.message);
 //     }
 // });
-
 // Old extension
-
 // import { AttackHook } from './attacks/attack_hook';
 // import { AttackHookNone } from './attacks/attack_hook_none';
 // import { getLogger } from './logging.js';
-
 // const log = getLogger('background');
-
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Extension installed');
 });
-
-
 // Needs to be stored in local
 // let attackType: AttackHook | null = null;  // Initialize as null
-
 // Initialize attack type when service worker starts
 // chrome.storage.local.get(['attackType'], (result) => {
 //     if (result.attackType) {
@@ -57,11 +50,10 @@ chrome.runtime.onInstalled.addListener(() => {
 //         chrome.storage.local.set({ attackType: 'none' });
 //     }
 // });
-
 /**
  * Listens for web requests before they are sent and handles specific authentication flows
  * based on the current attack type.
- * 
+ *
  * This listener specifically handles:
  * 1. Sync Login Attack Flow:
  *    - Monitors requests to testbank.com authentication endpoint
@@ -73,7 +65,7 @@ chrome.runtime.onInstalled.addListener(() => {
  * - Intercept and potentially modify web requests
  * - Coordinate with content scripts for DOM manipulation
  * - Handle different authentication flows based on attack type
- * 
+ *
  * @param {Object} details - Web request details object containing:
  *   - url: The URL of the request
  *   - requestBody: The request body if present
@@ -81,7 +73,6 @@ chrome.runtime.onInstalled.addListener(() => {
  * @returns {Object|undefined} - Returns attack type specific network modifications
  *                              or undefined to allow request unmodified
  */
-
 // chrome.webRequest.onBeforeRequest.addListener((details) => {
 //     // Get attack type here from local storage
 //     chrome.storage.local.get(['attackType'], (result) => {
@@ -95,7 +86,6 @@ chrome.runtime.onInstalled.addListener(() => {
 //             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
 //               // Retrieve the active tab
 //               var activeTab = tabs[0];
-              
 //               // Send a message to the content script
 //               chrome.tabs.sendMessage(activeTab.id, { message: "start-orig-login" });
 //             });
@@ -111,8 +101,6 @@ chrome.runtime.onInstalled.addListener(() => {
 //     }
 //     return attackType.onNetwork(details);
 // }, { urls: ['<all_urls>'] }, ['blocking', 'requestBody']);
-
-
 // chrome.webRequest.onHeadersReceived.addListener(
 //     function(info) {
 //         var headers = info.responseHeaders;
@@ -122,7 +110,6 @@ chrome.runtime.onInstalled.addListener(() => {
 //                 headers.splice(i, 1); // Remove header
 //             }
 //         }
-        
 //         headers.push({ name: 'Permissions-Policy', value: 'publickey-credentials-get=*' });
 //         return {responseHeaders: headers};
 //     }, {
@@ -139,13 +126,11 @@ chrome.runtime.onInstalled.addListener(() => {
 //         // chrome.webRequest.OnHeadersReceivedOptions.EXTRA_HEADERS,
 //     ].filter(Boolean)
 // );
-
-
 /**
  * Handles WebAuthn credential creation requests from content scripts.
  * This function is called whenever navigator.credentials.create() is invoked.
  * It delegates the credential creation to the currently active attack hook.
- * 
+ *
  * @param {WebAuthnRequestMessage} msg - The WebAuthn request message containing credential creation parameters
  * @param {chrome.runtime.MessageSender} sender - Information about the sender of the message, including tab info
  * @returns {Promise<WebAuthnResponseMessage|WebAuthnErrorMessage|undefined>} A promise that resolves to:
@@ -159,19 +144,16 @@ const create = async (msg, sender) => {
     //     console.log('received create event without a tab ID');
     //     return;
     // }
-
     // if (!attackType) {
     //     await getAttackType();
     // }
-
     // return await attackType!.onCredentialCreate(msg, sender);
 };
-
 /**
  * Handles WebAuthn credential retrieval/signing requests from content scripts.
  * This function is called whenever navigator.credentials.get() is invoked.
  * It delegates the credential retrieval to the currently active attack hook.
- * 
+ *
  * @param {WebAuthnRequestMessage} msg - The WebAuthn request message containing credential retrieval parameters
  * @param {chrome.runtime.MessageSender} sender - Information about the sender of the message, including tab info
  * @returns {Promise<WebAuthnResponseMessage|WebAuthnErrorMessage|undefined>} A promise that resolves to:
@@ -184,14 +166,11 @@ const sign = async (msg, sender) => {
     //     console.log('received sign event without a tab ID');
     //     return;
     // }
-
     // if (!attackType) {
     //     await getAttackType();
     // }
-
     // return await attackType!.onCredentialGet(msg, sender);    
 };
-
 function convertAttackToHook(attackName) {
     // switch(attackName) {
     //     case 'attack-mis-binding':
@@ -214,7 +193,6 @@ function convertAttackToHook(attackName) {
     //         break;
     // }
 }
-
 async function setAttackImpl(attackName) {
     convertAttackToHook(attackName);
     // Save to local storage
@@ -222,7 +200,6 @@ async function setAttackImpl(attackName) {
     // This may change passToOrig depending on attack type. Send message to the back if needed
     await sendPassToOrigValue();
 }
-
 async function sendPassToOrigValue() {
     // let passToOrig = true;
     // if (!attackType) {
@@ -243,7 +220,6 @@ async function sendPassToOrigValue() {
     //     }
     // });
 }
-
 function getAttackType() {
     // return new Promise((resolve) => {
     //     if (attackType) {
@@ -261,11 +237,9 @@ function getAttackType() {
     //     }
     // });
 }
-
 async function setAttackType(attackName) {
     await chrome.storage.local.set({ attackType: attackName });
 }
-
 // chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 //     console.log('Received form data:', msg);
 //     (async () => {
@@ -295,6 +269,5 @@ async function setAttackType(attackName) {
 //                 sendResponse(null);
 //         }
 //     })();
-
 //     return true;
 // });

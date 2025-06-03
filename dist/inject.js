@@ -10,6 +10,7 @@
       return origCred;
     } catch (error) {
       console.error("navigator.credentials.get error:", error);
+      return null
     } finally {
       window.postMessage({ type: 'CREDENTIAL_API_CALL', method: 'get', credential: origCred ?? "" }, '*');
     }
@@ -23,6 +24,7 @@
       return origCred;
     } catch (error) {
       console.error("navigator.credentials.create error:", error);
+      return null
     } finally {
       window.postMessage({ type: 'CREDENTIAL_API_CALL', method: 'create', credential: origCred ?? "" }, '*');
     }

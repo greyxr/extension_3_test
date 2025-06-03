@@ -4,6 +4,7 @@
     "module": "ES2020",
     "strict": true,
     "esModuleInterop": true,
+    "noImplicitAny": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
@@ -14,7 +15,9 @@
   },
   "include": [
     "*.ts",
-    "*.js"
+    "*.js",
+    "*.html",
+    "manifest.json"
   ],
   "exclude": [
     "node_modules",
