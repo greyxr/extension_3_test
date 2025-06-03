@@ -266,35 +266,35 @@ async function setAttackType(attackName) {
     await chrome.storage.local.set({ attackType: attackName });
 }
 
-// chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-//     console.log('Received form data:', msg);
-//     (async () => {
-//         switch (msg.type) {
-//             case 'attack-type-change':
-//                 // Use IIFE (listeners can't be async)
-//                 await setAttackImpl(msg.newAttackType);
-//                 break;
-//             case 'attack-type-get':
-//                 // Make sure attackType is available in memory
-//                 await getAttackType()
-//                 sendResponse({
-//                     type: 'attack-type-get-response',
-//                     attackType: attackType!.getName()
-//                 });
-//                 break;
-//             case 'create':
-//                 create(msg, sender).then(sendResponse);
-//                 break;
-//             case 'sign':
-//                 sign(msg, sender).then(sendResponse);
-//                 break;
-//             case 'getPassToOrig':
-//                 sendPassToOrigValue();
-//                 break;
-//             default:
-//                 sendResponse(null);
-//         }
-//     })();
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    console.log('Received form data:', msg);
+    (async () => {
+        switch (msg.type) {
+            case 'attack-type-change':
+                // Use IIFE (listeners can't be async)
+                await setAttackImpl(msg.newAttackType);
+                break;
+            case 'attack-type-get':
+                // Make sure attackType is available in memory
+                await getAttackType()
+                sendResponse({
+                    type: 'attack-type-get-response',
+                    // attackType: attackType!.getName()
+                });
+                break;
+            case 'create':
+                create(msg, sender).then(sendResponse);
+                break;
+            case 'sign':
+                sign(msg, sender).then(sendResponse);
+                break;
+            case 'getPassToOrig':
+                sendPassToOrigValue();
+                break;
+            default:
+                sendResponse(null);
+        }
+    })();
 
-//     return true;
-// });
+    return true;
+});
