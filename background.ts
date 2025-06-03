@@ -33,8 +33,8 @@
 
 // Old extension
 
-// import { AttackHook } from './attacks/attack_hook';
-// import { AttackHookNone } from './attacks/attack_hook_none';
+import { AttackHook } from './attacks/attack_hook';
+import { AttackHookNone } from './attacks/attack_hook_none';
 // import { getLogger } from './logging.js';
 
 // const log = getLogger('background');
@@ -45,18 +45,20 @@ chrome.runtime.onInstalled.addListener(() => {
 
 
 // Needs to be stored in local
-// let attackType: AttackHook | null = null;  // Initialize as null
+let attackType: AttackHook | null = null;  // Initialize as null
 
-// Initialize attack type when service worker starts
-// chrome.storage.local.get(['attackType'], (result) => {
-//     if (result.attackType) {
-//         convertAttackToHook(result.attackType);
-//     } else {
-//         // Default to none if nothing in storage
-//         attackType = new AttackHookNone();
-//         chrome.storage.local.set({ attackType: 'none' });
-//     }
-// });
+// Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
+// async function refreshAttackType() {
+//     chrome.storage.local.get(['attackType'], (result) => {
+//         if (result.attackType) {
+//             convertAttackToHook(result.attackType);
+//         } else {
+//             // Default to none if nothing in storage
+//             attackType = new AttackHookNone();
+//             chrome.storage.local.set({ attackType: 'none' });
+//         }
+//     });
+// }
 
 /**
  * Listens for web requests before they are sent and handles specific authentication flows
@@ -155,16 +157,16 @@ chrome.runtime.onInstalled.addListener(() => {
  */
 const create = async (msg, sender) => {
     console.log('In create');
-    // if (!sender.tab || !sender.tab.id) {
-    //     console.log('received create event without a tab ID');
-    //     return;
-    // }
+    if (!sender.tab || !sender.tab.id) {
+        console.log('received create event without a tab ID');
+        return;
+    }
 
-    // if (!attackType) {
-    //     await getAttackType();
-    // }
+    if (!attackType) {
+        await getAttackType();
+    }
 
-    // return await attackType!.onCredentialCreate(msg, sender);
+    return await attackType!.onCredentialCreate(msg, sender);
 };
 
 /**
@@ -268,6 +270,14 @@ async function setAttackType(attackName) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log('Received form data:', msg);
+    try {
+        attackType = new AttackHookNone();
+        console.log('Successfully created AttackHookNone instance');
+    } catch (error) {
+        console.error('Error creating AttackHookNone:', error);
+    }
+    // (async () => { await refreshAttackType(); })();
+    // console.log('Attack type:', attackType?.getName());
     (async () => {
         switch (msg.type) {
             case 'attack-type-change':

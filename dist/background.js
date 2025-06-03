@@ -1,55 +1,28 @@
-"use strict";
 // Initialize counter when extension is installed
 // chrome.runtime.onInstalled.addListener(() => {
 //     chrome.storage.local.set({ callCount: 0 });
 //     console.log('[Background] Extension installed');
 // });
-// // Listen for messages from content script and popup
-// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//     console.log('onMessage', message);
-//     // Handle credential API calls
-//     if (message.type === 'CREDENTIAL_API_CALL') {
-//         // Get current count from storage and increment
-//         chrome.storage.local.get(['callCount'], (result) => {
-//             const newCount = (result.callCount || 0) + 1;
-//             // Update storage
-//             chrome.storage.local.set({ callCount: newCount }, () => {
-//                 // Update badge
-//                 chrome.action.setBadgeText({
-//                     text: newCount.toString()
-//                 });
-//                 chrome.action.setBadgeBackgroundColor({
-//                     color: '#4CAF50'
-//                 });
-//             });
-//         });
-//     }
-//     // Handle log messages
-//     else if (message.type === 'LOG') {
-//         const source = sender.tab ? 'Content' : 'Popup';
-//         console.log(`[${source}]`, message.message);
-//     }
-// });
-// Old extension
-// import { AttackHook } from './attacks/attack_hook';
-// import { AttackHookNone } from './attacks/attack_hook_none';
+import { AttackHookNone } from './attacks/attack_hook_none';
 // import { getLogger } from './logging.js';
 // const log = getLogger('background');
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Extension installed');
 });
 // Needs to be stored in local
-// let attackType: AttackHook | null = null;  // Initialize as null
-// Initialize attack type when service worker starts
-// chrome.storage.local.get(['attackType'], (result) => {
-//     if (result.attackType) {
-//         convertAttackToHook(result.attackType);
-//     } else {
-//         // Default to none if nothing in storage
-//         attackType = new AttackHookNone();
-//         chrome.storage.local.set({ attackType: 'none' });
-//     }
-// });
+let attackType = null; // Initialize as null
+// Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
+// async function refreshAttackType() {
+//     chrome.storage.local.get(['attackType'], (result) => {
+//         if (result.attackType) {
+//             convertAttackToHook(result.attackType);
+//         } else {
+//             // Default to none if nothing in storage
+//             attackType = new AttackHookNone();
+//             chrome.storage.local.set({ attackType: 'none' });
+//         }
+//     });
+// }
 /**
  * Listens for web requests before they are sent and handles specific authentication flows
  * based on the current attack type.
@@ -140,14 +113,14 @@ chrome.runtime.onInstalled.addListener(() => {
  */
 const create = async (msg, sender) => {
     console.log('In create');
-    // if (!sender.tab || !sender.tab.id) {
-    //     console.log('received create event without a tab ID');
-    //     return;
-    // }
-    // if (!attackType) {
-    //     await getAttackType();
-    // }
-    // return await attackType!.onCredentialCreate(msg, sender);
+    if (!sender.tab || !sender.tab.id) {
+        console.log('received create event without a tab ID');
+        return;
+    }
+    if (!attackType) {
+        await getAttackType();
+    }
+    return await attackType.onCredentialCreate(msg, sender);
 };
 /**
  * Handles WebAuthn credential retrieval/signing requests from content scripts.
@@ -242,6 +215,15 @@ async function setAttackType(attackName) {
 }
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log('Received form data:', msg);
+    try {
+        attackType = new AttackHookNone();
+        console.log('Successfully created AttackHookNone instance');
+    }
+    catch (error) {
+        console.error('Error creating AttackHookNone:', error);
+    }
+    // (async () => { await refreshAttackType(); })();
+    // console.log('Attack type:', attackType?.getName());
     (async () => {
         switch (msg.type) {
             case 'attack-type-change':

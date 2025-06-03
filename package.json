@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "rimraf ./dist/ && tsc",
+    "build": "rimraf ./dist/ && tsc && cp manifest.json dist/manifest.json && cp inject.js dist/inject.js && cp popup.js dist/popup.js && cp popup.html dist/popup.html",
     "watch": "rimraf ./dist/ && tsc --watch"
   },
   "devDependencies": {

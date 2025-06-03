@@ -10,7 +10,6 @@
           origCred = await origGet.apply(this, arguments)
           return origCred;
         } catch (error) {
-          // Doesn't trigger when operation is cancelled
           console.log("navigator.credentials.get error:", error);
           return null
         } finally {
