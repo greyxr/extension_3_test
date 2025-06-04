@@ -16,5 +16,6 @@
     "@types/loglevel": "^1.5.4",
     "loglevel-plugin-prefix": "^0.8.4",
     "typescript": "^5.8.3"
-  }
+  },
+  "type": "module"
 }

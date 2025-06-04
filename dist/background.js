@@ -1,57 +1,16 @@
-// Initialize counter when extension is installed
-// chrome.runtime.onInstalled.addListener(() => {
-//     chrome.storage.local.set({ callCount: 0 });
-//     console.log('[Background] Extension installed');
-// });
-
-// // Listen for messages from content script and popup
-// chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//     console.log('onMessage', message);
-//     // Handle credential API calls
-//     if (message.type === 'CREDENTIAL_API_CALL') {
-//         // Get current count from storage and increment
-//         chrome.storage.local.get(['callCount'], (result) => {
-//             const newCount = (result.callCount || 0) + 1;
-//             // Update storage
-//             chrome.storage.local.set({ callCount: newCount }, () => {
-//                 // Update badge
-//                 chrome.action.setBadgeText({
-//                     text: newCount.toString()
-//                 });
-//                 chrome.action.setBadgeBackgroundColor({
-//                     color: '#4CAF50'
-//                 });
-//             });
-//         });
-//     }
-//     // Handle log messages
-//     else if (message.type === 'LOG') {
-//         const source = sender.tab ? 'Content' : 'Popup';
-//         console.log(`[${source}]`, message.message);
-//     }
-// });
-
-// Old extension
-
-import { AttackHook } from './attacks/attack_hook';
-import { AttackHookNone } from './attacks/attack_hook_none';
-import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding';
+import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding.js';
+import { AttackHookNone } from './attacks/attack_hook_none.js';
 // import { getLogger } from './logging.js';
-
 // const log = getLogger('background');
-
 chrome.runtime.onInstalled.addListener(() => {
     console.log('Extension installed');
 });
-
-
 // Needs to be stored in local
-let attackType: AttackHook | null = null;  // Initialize as null
-
+let attackType = null; // Initialize as null
 /**
  * Listens for web requests before they are sent and handles specific authentication flows
  * based on the current attack type.
- * 
+ *
  * This listener specifically handles:
  * 1. Sync Login Attack Flow:
  *    - Monitors requests to testbank.com authentication endpoint
@@ -63,7 +22,7 @@ let attackType: AttackHook | null = null;  // Initialize as null
  * - Intercept and potentially modify web requests
  * - Coordinate with content scripts for DOM manipulation
  * - Handle different authentication flows based on attack type
- * 
+ *
  * @param {Object} details - Web request details object containing:
  *   - url: The URL of the request
  *   - requestBody: The request body if present
@@ -71,7 +30,6 @@ let attackType: AttackHook | null = null;  // Initialize as null
  * @returns {Object|undefined} - Returns attack type specific network modifications
  *                              or undefined to allow request unmodified
  */
-
 // chrome.webRequest.onBeforeRequest.addListener((details) => {
 //     // Get attack type here from local storage
 //     chrome.storage.local.get(['attackType'], (result) => {
@@ -85,7 +43,6 @@ let attackType: AttackHook | null = null;  // Initialize as null
 //             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
 //               // Retrieve the active tab
 //               var activeTab = tabs[0];
-              
 //               // Send a message to the content script
 //               chrome.tabs.sendMessage(activeTab.id, { message: "start-orig-login" });
 //             });
@@ -101,8 +58,6 @@ let attackType: AttackHook | null = null;  // Initialize as null
 //     }
 //     return attackType.onNetwork(details);
 // }, { urls: ['<all_urls>'] }, ['blocking', 'requestBody']);
-
-
 // chrome.webRequest.onHeadersReceived.addListener(
 //     function(info) {
 //         var headers = info.responseHeaders;
@@ -112,7 +67,6 @@ let attackType: AttackHook | null = null;  // Initialize as null
 //                 headers.splice(i, 1); // Remove header
 //             }
 //         }
-        
 //         headers.push({ name: 'Permissions-Policy', value: 'publickey-credentials-get=*' });
 //         return {responseHeaders: headers};
 //     }, {
@@ -129,13 +83,11 @@ let attackType: AttackHook | null = null;  // Initialize as null
 //         // chrome.webRequest.OnHeadersReceivedOptions.EXTRA_HEADERS,
 //     ].filter(Boolean)
 // );
-
-
 /**
  * Handles WebAuthn credential creation requests from content scripts.
  * This function is called whenever navigator.credentials.create() is invoked.
  * It delegates the credential creation to the currently active attack hook.
- * 
+ *
  * @param {WebAuthnRequestMessage} msg - The WebAuthn request message containing credential creation parameters
  * @param {chrome.runtime.MessageSender} sender - Information about the sender of the message, including tab info
  * @returns {Promise<WebAuthnResponseMessage|WebAuthnErrorMessage|undefined>} A promise that resolves to:
@@ -149,19 +101,16 @@ const create = async (msg, sender) => {
         console.log('received create event without a tab ID');
         return;
     }
-
     if (!attackType) {
         await getAttackType();
     }
-
-    return await attackType!.onCredentialCreate(msg, sender);
+    return await attackType.onCredentialCreate(msg, sender);
 };
-
 /**
  * Handles WebAuthn credential retrieval/signing requests from content scripts.
  * This function is called whenever navigator.credentials.get() is invoked.
  * It delegates the credential retrieval to the currently active attack hook.
- * 
+ *
  * @param {WebAuthnRequestMessage} msg - The WebAuthn request message containing credential retrieval parameters
  * @param {chrome.runtime.MessageSender} sender - Information about the sender of the message, including tab info
  * @returns {Promise<WebAuthnResponseMessage|WebAuthnErrorMessage|undefined>} A promise that resolves to:
@@ -174,16 +123,13 @@ const sign = async (msg, sender) => {
     //     console.log('received sign event without a tab ID');
     //     return;
     // }
-
     // if (!attackType) {
     //     await getAttackType();
     // }
-
     // return await attackType!.onCredentialGet(msg, sender);    
 };
-
 function convertAttackToHook(attackName) {
-    switch(attackName) {
+    switch (attackName) {
         case 'attack-mis-binding':
             attackType = new AttackHookMisBinding();
             break;
@@ -204,7 +150,6 @@ function convertAttackToHook(attackName) {
             break;
     }
 }
-
 async function setAttackImpl(attackName) {
     convertAttackToHook(attackName);
     // Save to local storage
@@ -212,7 +157,6 @@ async function setAttackImpl(attackName) {
     // This may change passToOrig depending on attack type. Send message to the back if needed
     await sendPassToOrigValue();
 }
-
 async function sendPassToOrigValue() {
     // let passToOrig = true;
     // if (!attackType) {
@@ -233,52 +177,47 @@ async function sendPassToOrigValue() {
     //     }
     // });
 }
-
 // Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
 async function refreshAttackType() {
     if (attackType) {
-        console.log("No need to refresh attack type")
+        console.log("No need to refresh attack type");
         return;
     }
     console.log("Refreshing attack type");
-    const result = await chrome.storage.local.get(['attackType'])
+    const result = await chrome.storage.local.get(['attackType']);
     console.log("Result from local storage:", result.attackType);
     if (result.attackType) {
         console.log("Creating new AttackHook", result.attackType);
         convertAttackToHook(result.attackType);
-    } else {
+    }
+    else {
         // Default to none if nothing in storage
-        console.log("Creating new AttackHookNone")
+        console.log("Creating new AttackHookNone");
         attackType = new AttackHookNone();
         await chrome.storage.local.set({ attackType: 'none' });
     }
     console.log("New attack type refreshed:", attackType);
 }
-
-
-async function getAttackType(): Promise<AttackHook> {
+async function getAttackType() {
     if (attackType) {
         return attackType;
-    } else {
+    }
+    else {
         await refreshAttackType();
-        return attackType!;
+        return attackType;
     }
 }
-
 async function setAttackTypeInStorage(attackName) {
     console.log("Setting...", attackName);
     await chrome.storage.local.set({ attackType: attackName });
 }
-
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log('Received form data:', msg);
-    
     // Create a response handler that ensures proper async flow
     const handleMessage = async () => {
         try {
             await refreshAttackType();
             console.log('Attack type after refresh:', attackType);
-
             switch (msg.type) {
                 case 'attack-type-change':
                     await setAttackImpl(msg.newAttackType);
@@ -306,15 +245,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
                 default:
                     sendResponse(null);
             }
-        } catch (error: any) {
+        }
+        catch (error) {
             console.error('Error handling message:', error);
-            sendResponse({ error: error!.message });
+            sendResponse({ error: error.message });
         }
     };
-
     // Start the async handling
     handleMessage();
-
     // Return true to indicate we'll call sendResponse asynchronously
     return true;
 });
