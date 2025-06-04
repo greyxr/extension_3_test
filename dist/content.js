@@ -1,4 +1,6 @@
-"use strict";
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+
 const script = document.createElement('script');
 script.src = chrome.runtime.getURL('inject.js');
 script.onload = () => script.remove();
@@ -13,3 +15,7 @@ window.addEventListener('message', function (event) {
         chrome.runtime.sendMessage(event.data);
     }
 });
+
+/******/ })()
+;
+//# sourceMappingURL=content.js.map

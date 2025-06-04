@@ -1,4 +1,4 @@
-import { fromByteArray, toByteArray } from './lib/base64url.js';
+import { fromByteArray, toByteArray } from './lib/base64url.modern';
 
 // We need to construct the originalCredentialObject explicitly
 // https://stackoverflow.com/a/75318025

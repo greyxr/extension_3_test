@@ -1,5 +1,4 @@
 import * as CBOR from 'cbor';
-import * as cborjs from './cbor.js'
 import { getCompatibleKey, getCompatibleKeyFromCryptoKey} from './crypto';
 // import { fetchCounter, fetchKey, incrementCounter, keyExists, saveKey } from './storage';
 import { keyExists, saveKey } from './storage';

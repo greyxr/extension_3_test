@@ -1,4 +1,4 @@
-import * as cborjs from './cbor.js'
+import * as CBOR from 'cbor'
 import { base64ToByteArray, byteArrayToBase64 } from './utils';
 
 // Generated with pseudo random values via
@@ -211,7 +211,7 @@ class ECDSA implements ICOSECompatibleKey {
             credIdLen[0] = (CKEY_ID.length >> 8) & 0xff;
             credIdLen[1] = CKEY_ID.length & 0xff;
             const coseKey = await this.toCOSE(this.publicKey);
-            encodedKey = new Uint8Array(cborjs.encode(coseKey));
+            encodedKey = new Uint8Array(CBOR.encode(coseKey));
             authenticatorDataLength += aaguid.length
                 + credIdLen.byteLength
                 + CKEY_ID.length

@@ -1,5 +1,52 @@
-import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding.js';
-import { AttackHookNone } from './attacks/attack_hook_none.js';
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+
+;// ./attacks/attack_hook.ts
+class AttackHook {
+    onNetwork(details) {
+        return { cancel: false };
+    }
+    async onCredentialCreate(msg, sender) {
+        throw new Error('onCredentialCreate not implemented');
+    }
+    async onCredentialGet(msg, sender) {
+        throw new Error('onCredentialGet not implemented');
+    }
+    getName() {
+        throw new Error('getName not implemented');
+    }
+}
+
+;// ./attacks/attack_hook_none.ts
+
+class AttackHookNone extends AttackHook {
+    getName() {
+        return 'attack-none';
+    }
+    async onCredentialCreate(msg, sender) {
+        return {
+            type: 'create_response',
+            requestID: msg.requestID,
+            credential: msg.originalCredential,
+        };
+    }
+    async onCredentialGet(msg, sender) {
+        return {
+            type: 'sign_response',
+            requestID: msg.requestID,
+            credential: msg.originalCredential,
+        };
+    }
+}
+
+;// ./background.ts
+// Initialize counter when extension is installed
+// chrome.runtime.onInstalled.addListener(() => {
+//     chrome.storage.local.set({ callCount: 0 });
+//     console.log('[Background] Extension installed');
+// });
+
+// import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding';
 // import { getLogger } from './logging.js';
 // const log = getLogger('background');
 chrome.runtime.onInstalled.addListener(() => {
@@ -131,7 +178,7 @@ const sign = async (msg, sender) => {
 function convertAttackToHook(attackName) {
     switch (attackName) {
         case 'attack-mis-binding':
-            attackType = new AttackHookMisBinding();
+            attackType = new AttackHookNone();
             break;
         case 'attack-double-binding1':
             attackType = new AttackHookNone();
@@ -256,3 +303,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Return true to indicate we'll call sendResponse asynchronously
     return true;
 });
+
+/******/ })()
+;
+//# sourceMappingURL=background.js.map
