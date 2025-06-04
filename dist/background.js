@@ -11,19 +11,6 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 // Needs to be stored in local
 let attackType = null; // Initialize as null
-// Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
-async function refreshAttackType() {
-    chrome.storage.local.get(['attackType'], (result) => {
-        if (result.attackType) {
-            convertAttackToHook(result.attackType);
-        }
-        else {
-            // Default to none if nothing in storage
-            attackType = new AttackHookNone();
-            chrome.storage.local.set({ attackType: 'none' });
-        }
-    });
-}
 /**
  * Listens for web requests before they are sent and handles specific authentication flows
  * based on the current attack type.
@@ -146,31 +133,31 @@ const sign = async (msg, sender) => {
     // return await attackType!.onCredentialGet(msg, sender);    
 };
 function convertAttackToHook(attackName) {
-    // switch(attackName) {
-    //     case 'attack-mis-binding':
-    //         attackType = new AttackHookNone();
-    //         break;
-    //     case 'attack-double-binding1':
-    //         attackType = new AttackHookNone();
-    //         break;
-    //     case 'attack-double-binding2':
-    //         attackType = new AttackHookNone();
-    //         break;
-    //     case 'attack-clone-detection':
-    //         attackType = new AttackHookNone();
-    //         break;
-    //     case 'attack-sync-login':
-    //         attackType = new AttackHookNone();
-    //         break;
-    //     default:
-    //         attackType = new AttackHookNone();
-    //         break;
-    // }
+    switch (attackName) {
+        case 'attack-mis-binding':
+            attackType = new AttackHookNone();
+            break;
+        case 'attack-double-binding1':
+            attackType = new AttackHookNone();
+            break;
+        case 'attack-double-binding2':
+            attackType = new AttackHookNone();
+            break;
+        case 'attack-clone-detection':
+            attackType = new AttackHookNone();
+            break;
+        case 'attack-sync-login':
+            attackType = new AttackHookNone();
+            break;
+        default:
+            attackType = new AttackHookNone();
+            break;
+    }
 }
 async function setAttackImpl(attackName) {
     convertAttackToHook(attackName);
     // Save to local storage
-    await setAttackType(attackName);
+    await setAttackTypeInStorage(attackName);
     // This may change passToOrig depending on attack type. Send message to the back if needed
     await sendPassToOrigValue();
 }
@@ -194,58 +181,82 @@ async function sendPassToOrigValue() {
     //     }
     // });
 }
-function getAttackType() {
-    return new Promise((resolve) => {
-        if (attackType) {
-            resolve(attackType);
-        }
-        else {
-            chrome.storage.local.get(['attackType'], (attackName) => {
-                if (attackName) {
-                    convertAttackToHook(attackName);
-                }
-                else {
-                    attackType = new AttackHookNone();
-                    chrome.storage.local.set({ attackType: 'none' });
-                }
-                resolve(attackType);
-            });
-        }
-    });
+// Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
+async function refreshAttackType() {
+    if (attackType) {
+        console.log("No need to refresh attack type");
+        return;
+    }
+    console.log("Refreshing attack type");
+    const result = await chrome.storage.local.get(['attackType']);
+    console.log("Result from local storage:", result.attackType);
+    if (result.attackType) {
+        console.log("Creating new AttackHook", result.attackType);
+        convertAttackToHook(result.attackType);
+    }
+    else {
+        // Default to none if nothing in storage
+        console.log("Creating new AttackHookNone");
+        attackType = new AttackHookNone();
+        await chrome.storage.local.set({ attackType: 'none' });
+    }
+    console.log("New attack type refreshed:", attackType);
 }
-async function setAttackType(attackName) {
+async function getAttackType() {
+    if (attackType) {
+        return attackType;
+    }
+    else {
+        await refreshAttackType();
+        return attackType;
+    }
+}
+async function setAttackTypeInStorage(attackName) {
+    console.log("Setting...", attackName);
     await chrome.storage.local.set({ attackType: attackName });
 }
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     console.log('Received form data:', msg);
-    (async () => { await refreshAttackType(); })();
-    console.log('Attack type:', attackType?.getName());
-    (async () => {
-        switch (msg.type) {
-            case 'attack-type-change':
-                // Use IIFE (listeners can't be async)
-                await setAttackImpl(msg.newAttackType);
-                break;
-            case 'attack-type-get':
-                // Make sure attackType is available in memory
-                await getAttackType();
-                sendResponse({
-                    type: 'attack-type-get-response',
-                    // attackType: attackType!.getName()
-                });
-                break;
-            case 'create':
-                create(msg, sender).then(sendResponse);
-                break;
-            case 'sign':
-                sign(msg, sender).then(sendResponse);
-                break;
-            case 'getPassToOrig':
-                sendPassToOrigValue();
-                break;
-            default:
-                sendResponse(null);
+    // Create a response handler that ensures proper async flow
+    const handleMessage = async () => {
+        try {
+            await refreshAttackType();
+            console.log('Attack type after refresh:', attackType);
+            switch (msg.type) {
+                case 'attack-type-change':
+                    await setAttackImpl(msg.newAttackType);
+                    console.log("Attack type changed:", attackType);
+                    break;
+                case 'attack-type-get':
+                    const currentType = await getAttackType();
+                    console.log("Attack type in switch:", currentType);
+                    sendResponse({
+                        type: 'attack-type-get-response',
+                        attackType: currentType.getName()
+                    });
+                    break;
+                case 'create':
+                    const createResponse = await create(msg, sender);
+                    sendResponse(createResponse);
+                    break;
+                case 'sign':
+                    const signResponse = await sign(msg, sender);
+                    sendResponse(signResponse);
+                    break;
+                case 'getPassToOrig':
+                    await sendPassToOrigValue();
+                    break;
+                default:
+                    sendResponse(null);
+            }
         }
-    })();
+        catch (error) {
+            console.error('Error handling message:', error);
+            sendResponse({ error: error.message });
+        }
+    };
+    // Start the async handling
+    handleMessage();
+    // Return true to indicate we'll call sendResponse asynchronously
     return true;
 });

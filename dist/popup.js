@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const radioButtons = document.querySelectorAll('input[name="attackType"]');
 
     // Initialize popup state
-    chrome.runtime.sendMessage({ type: 'attack-type-get-2' }, (response) => {
+    chrome.runtime.sendMessage({ type: 'attack-type-get' }, (response) => {
         if (response && response.attackType) {
             const radio = document.querySelector(`input[value="${response.attackType}"]`);
             if (radio) {
