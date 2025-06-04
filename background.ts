@@ -35,7 +35,7 @@
 
 import { AttackHook } from './attacks/attack_hook';
 import { AttackHookNone } from './attacks/attack_hook_none';
-// import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding';
+import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding';
 // import { getLogger } from './logging.js';
 
 // const log = getLogger('background');
@@ -183,9 +183,10 @@ const sign = async (msg, sender) => {
 };
 
 function convertAttackToHook(attackName) {
+    console.log("Converting attack to hook:", attackName);
     switch(attackName) {
         case 'attack-mis-binding':
-            attackType = new AttackHookNone();
+            attackType = new AttackHookMisBinding();
             break;
         case 'attack-double-binding1':
             attackType = new AttackHookNone();
@@ -207,6 +208,7 @@ function convertAttackToHook(attackName) {
 
 async function setAttackImpl(attackName) {
     convertAttackToHook(attackName);
+    console.log("Attack type set to:", attackType!.getName());
     // Save to local storage
     await setAttackTypeInStorage(attackName);
     // This may change passToOrig depending on attack type. Send message to the back if needed

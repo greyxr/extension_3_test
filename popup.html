@@ -63,19 +63,23 @@
         <h3>Attack Type</h3>
         <div class="radio-group">
             <div class="radio-option">
-                <input type="radio" id="misbind" name="attackType" value="misbind">
+                <input type="radio" id="none" name="attackType" value="none">
+                <label for="none">None</label>
+            </div>
+            <div class="radio-option">
+                <input type="radio" id="misbind" name="attackType" value="attack-mis-binding">
                 <label for="misbind">Misbind</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="doublebind" name="attackType" value="doublebind">
+                <input type="radio" id="doublebind" name="attackType" value="attack-double-binding1">
                 <label for="doublebind">Double bind</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="clone" name="attackType" value="clone">
+                <input type="radio" id="clone" name="attackType" value="attack-clone-detection">
                 <label for="clone">Clone</label>
             </div>
             <div class="radio-option">
-                <input type="radio" id="sync" name="attackType" value="sync">
+                <input type="radio" id="sync" name="attackType" value="attack-sync-login">
                 <label for="sync">Sync</label>
             </div>
         </div>
