@@ -170,16 +170,16 @@ const create = async (msg, sender) => {
  *   - undefined if the sender tab is invalid
  */
 const sign = async (msg, sender) => {
-    // if (!sender.tab || !sender.tab.id) {
-    //     console.log('received sign event without a tab ID');
-    //     return;
-    // }
+    if (!sender.tab || !sender.tab.id) {
+        console.log('received sign event without a tab ID');
+        return;
+    }
 
-    // if (!attackType) {
-    //     await getAttackType();
-    // }
+    if (!attackType) {
+        await getAttackType();
+    }
 
-    // return await attackType!.onCredentialGet(msg, sender);    
+    return await attackType!.onCredentialGet(msg, sender);    
 };
 
 function convertAttackToHook(attackName) {
@@ -216,24 +216,24 @@ async function setAttackImpl(attackName) {
 }
 
 async function sendPassToOrigValue() {
-    // let passToOrig = true;
-    // if (!attackType) {
-    //     await getAttackType();
-    // }
-    // console.log("SEND FUNCT", attackType!.getName());
-    // if (attackType!.getName() === 'attack-double-binding2') {
-    //     passToOrig = false;
-    //     console.log("INFAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLSSSSSSSSSSSSEEEEEEEE");
-    // }
-    // console.log("value of passToOrig passed from back", passToOrig)
-    // chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-    //     var activeTab = tabs[0];
-    //     if (activeTab.id) {
-    //         chrome.tabs.sendMessage(activeTab.id, { message: 'passToOrig', val: passToOrig});
-    //     } else {
-    //         console.log("BROKEN FUNCTIONALITY")
-    //     }
-    // });
+    let passToOrig = true;
+    if (!attackType) {
+        await getAttackType();
+    }
+    console.log("SEND FUNCT", attackType!.getName());
+    if (attackType!.getName() === 'attack-double-binding2') {
+        passToOrig = false;
+        console.log("INFAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLSSSSSSSSSSSSEEEEEEEE");
+    }
+    console.log("value of passToOrig passed from back", passToOrig)
+    chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        var activeTab = tabs[0];
+        if (activeTab.id) {
+            chrome.tabs.sendMessage(activeTab.id, { message: 'passToOrig', val: passToOrig});
+        } else {
+            console.log("BROKEN FUNCTIONALITY")
+        }
+    });
 }
 
 // Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
@@ -278,8 +278,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Create a response handler that ensures proper async flow
     const handleMessage = async () => {
         try {
-            await refreshAttackType();
-            console.log('Attack type after refresh:', attackType);
+            // await refreshAttackType();
+            // console.log('Attack type after refresh:', attackType);
 
             switch (msg.type) {
                 case 'attack-type-change':
