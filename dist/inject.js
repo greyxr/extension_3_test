@@ -2613,6 +2613,9 @@ var __webpack_exports__ = {};
 // const log = getLogger('inject_webauthn');
 (() => {
     var _a;
+    function logHelper(...msg) {
+        console.log('[Inject] ', msg);
+    }
     class CKeyCredentials {
     }
     _a = CKeyCredentials;
@@ -2683,16 +2686,16 @@ var __webpack_exports__ = {};
         if (msg.message && msg.message === 'passToOrig') {
             passToOrig = msg.val;
             gotPassToOrig = true;
-            console.log('passToOrig set', passToOrig);
+            logHelper('passToOrig set', passToOrig);
         }
         else if (['create_response', 'sign_response'].indexOf(msg.type) > -1) {
-            console.log('relevant message', msg);
+            logHelper('relevant message', msg);
             if (msg.requestID && msg.resp && CKeyCredentials.webauthnCallbacks[msg.requestID]) {
                 CKeyCredentials.webauthnCallbacks[msg.requestID](msg);
                 delete (CKeyCredentials.webauthnCallbacks[msg.requestID]);
             }
         }
-    }, false);
+    }, true);
     function delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
@@ -2703,23 +2706,23 @@ var __webpack_exports__ = {};
     // credential creation on most websites.
     const create = navigator.credentials.create.bind(navigator.credentials);
     navigator.credentials.create = async function () {
-        console.log('called navigator.credentials.create ', arguments);
+        logHelper('called navigator.credentials.create ', arguments);
         await delay(200); // Wait for 1 second (1000 milliseconds)
         let realCred = null;
         if (passToOrig) {
             // call the real create so that the user gets expected interaction
-            console.log('getting real credential from authenticator');
+            logHelper('getting real credential from authenticator');
             realCred = await create(...arguments);
             if (!realCred) {
-                console.log('create call failed');
+                logHelper('create call failed');
                 return null;
             }
-            console.log('got real credential', realCred);
+            logHelper('got real credential', realCred);
         }
         // create our fake credential
-        console.log('processing credential');
+        logHelper('processing credential');
         const cred = await CKeyCredentials.create(arguments[0], realCred);
-        console.log('credential processed');
+        logHelper('credential processed');
         // return the fake credential
         return cred;
     };
@@ -2727,15 +2730,15 @@ var __webpack_exports__ = {};
     // credential getting on most websites.
     const get = navigator.credentials.get.bind(navigator.credentials);
     navigator.credentials.get = async function () {
-        console.log('navigator.credentials.get called', arguments);
+        logHelper('navigator.credentials.get called', arguments);
         // call the real get so that the user gets expected interaction
-        console.log('getting real signature from authenticator');
+        logHelper('getting real signature from authenticator');
         let realCred = await get(...arguments);
-        console.log('got real signature', realCred);
+        logHelper('got real signature', realCred);
         // get the credential from our fake store
-        console.log('processing signature');
+        logHelper('processing signature');
         const cred = await CKeyCredentials.get(arguments[0], realCred);
-        console.log('credential signature');
+        logHelper('credential signature');
         // return the fake credential
         return cred;
     };
@@ -2757,7 +2760,7 @@ var __webpack_exports__ = {};
             // override postMessage so that we can modify the message before posting it
             const postMessage = port.postMessage.bind(port);
             port.postMessage = function (msg) {
-                console.log('port.postMessage called', msg);
+                logHelper('port.postMessage called', msg);
                 // TODO: modify posted message as needed
                 // post message so that user gets expected interaction
                 postMessage(msg);
@@ -2766,7 +2769,7 @@ var __webpack_exports__ = {};
             const listeners = [];
             // add a real listener to modify message and forward it to real listeners
             port.onMessage.addListener(async function (msg, port) {
-                console.log('message received', msg, port);
+                logHelper('message received', msg, port);
                 // ignore irrelevant messages
                 if (!['u2f_register_response', 'u2f_sign_response'].includes(msg.type)) {
                     listeners.forEach((l) => l(msg, port));
@@ -2782,7 +2785,7 @@ var __webpack_exports__ = {};
             return port;
         };
     }
-    console.log('injected');
+    logHelper('injected');
 })();
 
 })();

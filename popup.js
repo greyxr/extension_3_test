@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         newAttackType: e.target.value 
                     }, 
                     (response) => {
-                        if (response && response.success) {
+                        if (response && response.message === 'success') {
                             log(`Attack type changed to: ${e.target.value}`);
                         } else {
                             log(`Error changing attack type: ${response?.error || 'unknown error'}`);

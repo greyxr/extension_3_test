@@ -4,6 +4,10 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
 // const log = getLogger('inject_webauthn');
 
 (() => {
+  function logHelper(...msg: any[]): void {
+    console.log('[Inject] ', msg);
+  }
+
   class CKeyCredentials {
     static webauthnReqCounter = 0;
     static webauthnCallbacks = {};
@@ -93,15 +97,15 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
     if (msg.message && msg.message === 'passToOrig') {
       passToOrig = msg.val;
       gotPassToOrig = true;
-      console.log('passToOrig set', passToOrig);
+      logHelper('passToOrig set', passToOrig);
     } else if (['create_response', 'sign_response'].indexOf(msg.type) > -1) {
-      console.log('relevant message', msg);
+      logHelper('relevant message', msg);
       if (msg.requestID && msg.resp && CKeyCredentials.webauthnCallbacks[msg.requestID]) {
         CKeyCredentials.webauthnCallbacks[msg.requestID](msg);
         delete (CKeyCredentials.webauthnCallbacks[msg.requestID]);
       }
     }
-  }, false);
+  }, true);
 
 
   function delay(ms) {
@@ -117,26 +121,26 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
 
   const create = navigator.credentials.create.bind(navigator.credentials);
   navigator.credentials.create = async function() {
-    console.log('called navigator.credentials.create ', arguments);
+    logHelper('called navigator.credentials.create ', arguments);
 
     await delay(200); // Wait for 1 second (1000 milliseconds)
 
     let realCred: Credential | null = null
     if (passToOrig) {
       // call the real create so that the user gets expected interaction
-      console.log('getting real credential from authenticator');
+      logHelper('getting real credential from authenticator');
       realCred = await create(...arguments);
       if (!realCred) {
-        console.log('create call failed');
+        logHelper('create call failed');
         return null;
       }
-      console.log('got real credential', realCred);
+      logHelper('got real credential', realCred);
     }
 
     // create our fake credential
-    console.log('processing credential');
+    logHelper('processing credential');
     const cred = await CKeyCredentials.create(arguments[0], realCred as PublicKeyCredential);
-    console.log('credential processed');
+    logHelper('credential processed');
 
     // return the fake credential
     return cred;
@@ -146,17 +150,17 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
   // credential getting on most websites.
   const get = navigator.credentials.get.bind(navigator.credentials);
   navigator.credentials.get = async function() {
-    console.log('navigator.credentials.get called', arguments);
+    logHelper('navigator.credentials.get called', arguments);
 
     // call the real get so that the user gets expected interaction
-    console.log('getting real signature from authenticator');
+    logHelper('getting real signature from authenticator');
     let realCred = await get(...arguments);
-    console.log('got real signature', realCred);
+    logHelper('got real signature', realCred);
 
     // get the credential from our fake store
-    console.log('processing signature');
+    logHelper('processing signature');
     const cred = await CKeyCredentials.get(arguments[0], realCred as PublicKeyCredential);
-    console.log('credential signature');
+    logHelper('credential signature');
 
     // return the fake credential
     return cred;
@@ -182,7 +186,7 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
       // override postMessage so that we can modify the message before posting it
       const postMessage = port.postMessage.bind(port);
       port.postMessage = function(msg: any) {
-        console.log('port.postMessage called', msg);
+        logHelper('port.postMessage called', msg);
 
         // TODO: modify posted message as needed
 
@@ -195,7 +199,7 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
 
       // add a real listener to modify message and forward it to real listeners
       port.onMessage.addListener(async function(msg: any, port: chrome.runtime.Port) {
-        console.log('message received', msg, port);
+        logHelper('message received', msg, port);
 
         // ignore irrelevant messages
         if (!['u2f_register_response', 'u2f_sign_response'].includes(msg.type)) {
@@ -217,5 +221,5 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
     };
   }
 
-  console.log('injected');
+  logHelper('injected');
 })();

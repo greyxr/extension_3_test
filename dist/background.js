@@ -12779,10 +12779,14 @@ var webauthn = __webpack_require__(555);
 
 
 class AttackHookMisBinding extends AttackHook {
+    logHelper(...msg) {
+        console.log('[AttackHookMisBinding] ', msg);
+    }
     getName() {
         return 'attack-mis-binding';
     }
     async onCredentialCreate(msg, sender) {
+        this.logHelper('misbind onCredentialCreate called:', msg, sender);
         if (!sender.url) {
             return {
                 requestID: msg.requestID,
@@ -12792,19 +12796,23 @@ class AttackHookMisBinding extends AttackHook {
         }
         const origin = (0,utils/* getOriginFromUrl */.Yo)(sender.url);
         const originalCredential = (0,utils/* webauthnParse */._7)(msg.originalCredential);
+        this.logHelper('originalCredential', originalCredential);
         const id = originalCredential.id;
+        this.logHelper('id', id);
         const rawId = Array.from(new Uint8Array(originalCredential.rawId));
+        this.logHelper('rawId', rawId);
         try {
             if (!origin) {
                 throw new Error("BROKEN FUNCTIONALITY misbinding. No origin");
             }
             const opts = (0,utils/* webauthnParse */._7)(msg.options);
-            console.log(msg);
+            this.logHelper('opts', opts);
+            this.logHelper(msg);
             const credential = await (0,webauthn/* generateRegistrationKeyAndAttestation */.n)(origin, opts.publicKey, '9999', id, rawId);
-            console.log('create credential');
-            console.log(credential);
-            console.log((0,utils/* webauthnStringify */._q)(credential));
-            console.log('RE PARSE ', (0,utils/* webauthnParse */._7)((0,utils/* webauthnStringify */._q)(credential)));
+            this.logHelper('create credential');
+            this.logHelper(credential);
+            this.logHelper((0,utils/* webauthnStringify */._q)(credential));
+            this.logHelper('RE PARSE ', (0,utils/* webauthnParse */._7)((0,utils/* webauthnStringify */._q)(credential)));
             return {
                 credential: (0,utils/* webauthnStringify */._q)(credential),
                 requestID: msg.requestID,
@@ -12814,10 +12822,10 @@ class AttackHookMisBinding extends AttackHook {
         catch (e) {
             if (e instanceof DOMException) {
                 const { code, message, name } = e;
-                console.log('failed to import key due to DOMException', { code, message, name }, e);
+                this.logHelper('failed to import key due to DOMException', { code, message, name }, e);
             }
             else {
-                console.log('failed to import key', { errorType: `${(typeof e)}` }, e);
+                this.logHelper('failed to import key', { errorType: `${(typeof e)}` }, e);
             }
             return {
                 requestID: msg.requestID,
@@ -12827,6 +12835,7 @@ class AttackHookMisBinding extends AttackHook {
         }
     }
     async onCredentialGet(msg, sender) {
+        this.logHelper('misbind onCredentialGet called:', msg, sender);
         return {
             type: 'sign_response',
             requestID: msg.requestID,
@@ -12870,15 +12879,18 @@ class AttackHookMisBinding extends AttackHook {
 // Initialize counter when extension is installed
 // chrome.runtime.onInstalled.addListener(() => {
 //     chrome.storage.local.set({ callCount: 0 });
-//     console.log('[Background] Extension installed');
+//     logHelper('[Background] Extension installed');
 // });
 
 
 // import { getLogger } from './logging.js';
 // const log = getLogger('background');
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('Extension installed');
+    logHelper('Extension installed');
 });
+function logHelper(...msg) {
+    console.log('[Background] ', msg);
+}
 // Needs to be stored in local
 let attackType = null; // Initialize as null
 /**
@@ -12911,9 +12923,9 @@ let attackType = null; // Initialize as null
 //     });
 //     // Generate new attack hook based on attack type
 //     if (attackType == "attack-sync-login") {
-//         console.log(details.url);
+//         logHelper(details.url);
 //         if (details.url === "https://testbank.com:8443/api/v1/authenticate/finish") {
-//             console.log("Request sent to the specified URL:", details.url);
+//             logHelper("Request sent to the specified URL:", details.url);
 //             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
 //               // Retrieve the active tab
 //               var activeTab = tabs[0];
@@ -12924,7 +12936,7 @@ let attackType = null; // Initialize as null
 //                     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
 //               // Retrieve the active tab
 //               var activeTab = tabs[0];
-//               console.log("Detected 2FAA URL");
+//               logHelper("Detected 2FAA URL");
 //               // Send a message to the content script
 //               chrome.tabs.sendMessage(activeTab.id, { message: "push-iframe-code" });
 //             });
@@ -12970,9 +12982,9 @@ let attackType = null; // Initialize as null
  *   - undefined if the sender tab is invalid
  */
 const create = async (msg, sender) => {
-    console.log('In create');
+    logHelper('In create');
     if (!sender.tab || !sender.tab.id) {
-        console.log('received create event without a tab ID');
+        logHelper('received create event without a tab ID');
         return;
     }
     if (!attackType) {
@@ -12994,7 +13006,7 @@ const create = async (msg, sender) => {
  */
 const sign = async (msg, sender) => {
     if (!sender.tab || !sender.tab.id) {
-        console.log('received sign event without a tab ID');
+        logHelper('received sign event without a tab ID');
         return;
     }
     if (!attackType) {
@@ -13003,7 +13015,7 @@ const sign = async (msg, sender) => {
     return await attackType.onCredentialGet(msg, sender);
 };
 function convertAttackToHook(attackName) {
-    console.log("Converting attack to hook:", attackName);
+    logHelper("Converting attack to hook:", attackName);
     switch (attackName) {
         case 'attack-mis-binding':
             attackType = new AttackHookMisBinding();
@@ -13027,7 +13039,7 @@ function convertAttackToHook(attackName) {
 }
 async function setAttackImpl(attackName) {
     convertAttackToHook(attackName);
-    console.log("Attack type set to:", attackType.getName());
+    logHelper("Attack type set to:", attackType.getName());
     // Save to local storage
     await setAttackTypeInStorage(attackName);
     // This may change passToOrig depending on attack type. Send message to the back if needed
@@ -13038,42 +13050,42 @@ async function sendPassToOrigValue() {
     if (!attackType) {
         await getAttackType();
     }
-    console.log("SEND FUNCT", attackType.getName());
+    logHelper("SEND FUNCT", attackType.getName());
     if (attackType.getName() === 'attack-double-binding2') {
         passToOrig = false;
-        console.log("INFAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLSSSSSSSSSSSSEEEEEEEE");
+        logHelper("INFAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLSSSSSSSSSSSSEEEEEEEE");
     }
-    console.log("value of passToOrig passed from back", passToOrig);
+    logHelper("value of passToOrig passed from back", passToOrig);
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
         var activeTab = tabs[0];
         if (activeTab.id) {
             chrome.tabs.sendMessage(activeTab.id, { message: 'passToOrig', val: passToOrig });
         }
         else {
-            console.log("BROKEN FUNCTIONALITY");
+            logHelper("BROKEN FUNCTIONALITY");
         }
     });
 }
 // Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
 async function refreshAttackType() {
     if (attackType) {
-        console.log("No need to refresh attack type");
+        logHelper("No need to refresh attack type");
         return;
     }
-    console.log("Refreshing attack type");
+    logHelper("Refreshing attack type");
     const result = await chrome.storage.local.get(['attackType']);
-    console.log("Result from local storage:", result.attackType);
+    logHelper("Result from local storage:", result.attackType);
     if (result.attackType) {
-        console.log("Creating new AttackHook", result.attackType);
+        logHelper("Creating new AttackHook", result.attackType);
         convertAttackToHook(result.attackType);
     }
     else {
         // Default to none if nothing in storage
-        console.log("Creating new AttackHookNone");
+        logHelper("Creating new AttackHookNone");
         attackType = new AttackHookNone();
         await chrome.storage.local.set({ attackType: 'none' });
     }
-    console.log("New attack type refreshed:", attackType);
+    logHelper("New attack type refreshed:", attackType);
 }
 async function getAttackType() {
     if (attackType) {
@@ -13085,24 +13097,25 @@ async function getAttackType() {
     }
 }
 async function setAttackTypeInStorage(attackName) {
-    console.log("Setting...", attackName);
+    logHelper("Setting...", attackName);
     await chrome.storage.local.set({ attackType: attackName });
 }
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log('Received form data:', msg);
+    logHelper('Received form data:', msg);
     // Create a response handler that ensures proper async flow
     const handleMessage = async () => {
         try {
             // await refreshAttackType();
-            // console.log('Attack type after refresh:', attackType);
+            // logHelper('Attack type after refresh:', attackType);
             switch (msg.type) {
                 case 'attack-type-change':
                     await setAttackImpl(msg.newAttackType);
-                    console.log("Attack type changed:", attackType);
+                    logHelper("Attack type changed:", attackType);
+                    sendResponse({ message: 'success', val: 'test' });
                     break;
                 case 'attack-type-get':
                     const currentType = await getAttackType();
-                    console.log("Attack type in switch:", currentType);
+                    logHelper("Attack type in switch:", currentType);
                     sendResponse({
                         type: 'attack-type-get-response',
                         attackType: currentType.getName()

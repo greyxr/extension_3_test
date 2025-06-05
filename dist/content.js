@@ -15,6 +15,9 @@ script.onload = () => script.remove();
 //     }
 // });
 // Original code
+function logHelper(...msg) {
+    console.log('[Content] ', msg);
+}
 const relevantEventTypes = ['create', 'sign'];
 let passToOrig = true;
 window.addEventListener('message', async (event) => {
@@ -43,7 +46,7 @@ function waitForElement(callBack) {
     window.setTimeout(function () {
         var element = document.querySelectorAll('div[class="js-u2f-registration width-full"]')[1];
         if (element) {
-            console.log("Found element");
+            logHelper("Found element");
             callBack(element);
         }
         else {
@@ -53,7 +56,7 @@ function waitForElement(callBack) {
 }
 document.addEventListener('DOMContentLoaded', () => {
     // waitForElement(,function(){
-    //   console.log("FOUND 2nd elemdone");
+    //   logHelper("FOUND 2nd elemdone");
     // });
     chrome.runtime.sendMessage({ type: 'getPassToOrig' });
     chrome.runtime.sendMessage({ type: 'attack-type-get' }, (resp) => {
@@ -68,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
         //   var target = document.querySelector('.js-u2f-registrations.mb-2.ml-2.width-full');
         //   var observer = new MutationObserver(function(mutations) {
         //     mutations.forEach(function(mutation) {
-        //       console.log(mutation.type);
+        //       logHelper(mutation.type);
         //         // alert('This is a test 2');
         //         const elem = document.querySelectorAll('div[class="js-u2f-registration width-full"]')[1];
         //         if (elem) {
@@ -101,11 +104,11 @@ document.addEventListener('DOMContentLoaded', () => {
         //   }
         // } else if (resp.attackType === 'attack-sync-login') {
         //   const webpageURL = window.location.href;
-        //   console.log(webpageURL);
+        //   logHelper(webpageURL);
         //   if (webpageURL === "https://github.com/sessions/two-factor/webauthn") {
         //     const addButton = document.querySelector(".js-webauthn-confirm-button.btn.btn-block.Button--primary.Button--medium.Button.mt-0") as HTMLButtonElement;
         //     if (addButton) {
-        //       console.log("Added iframe on load");
+        //       logHelper("Added iframe on load");
         //         document.addEventListener('click', handleRegisterButtonClick, true);
         //     }
         //   }
@@ -132,7 +135,7 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
         // const form = document.querySelector('.add-u2f-registration-form.js-add-u2f-registration-form');
         // const addButton = form.querySelector('div > span > button');
         // alert(addButton);
-        console.log("GOTT iframe push");
+        logHelper("GOTT iframe push");
         if (addButton) {
             // const form = document.querySelector('.js-webauthn-form');
             // form.addEventListener('submit', handleRegisterButtonClick);
@@ -145,14 +148,14 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
             //     e.preventDefault(); // disables the browser's default behavior
             //   }
             // }, true);
-            console.log("ADDED event listener");
+            logHelper("ADDED event listener");
             document.addEventListener('click', handleRegisterButtonClick, true);
             // addButton.addEventListener('click', removeRegisterButtonListener);
         }
     }
     else if (request.message === 'start-orig-login') {
         // addButton.removeEventListener('click', handleRegisterButtonClick);
-        console.log("REMOVED event listener");
+        logHelper("REMOVED event listener");
         document.removeEventListener('click', handleRegisterButtonClick, true);
         addButton.click();
     }
@@ -183,13 +186,15 @@ chrome.runtime.onMessage.addListener(async function (request, sender, sendRespon
     }
     else if (request.message === 'passToOrig') {
         // Send a message to the injected script
-        console.log("in content with passToOrig ", passToOrig);
+        logHelper("in content with passToOrig ", passToOrig);
         passToOrig = request.val;
         window.postMessage({ message: 'passToOrig', val: passToOrig }, window.location.origin);
+        sendResponse({ message: 'testMessage', val: passToOrig });
     }
     else if (request.message === 'reloadPage') {
         // location.reload();
     }
+    return true; // Keep the message channel open
 });
 
 /******/ })()

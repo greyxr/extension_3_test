@@ -1,12 +1,12 @@
 // Initialize counter when extension is installed
 // chrome.runtime.onInstalled.addListener(() => {
 //     chrome.storage.local.set({ callCount: 0 });
-//     console.log('[Background] Extension installed');
+//     logHelper('[Background] Extension installed');
 // });
 
 // // Listen for messages from content script and popup
 // chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-//     console.log('onMessage', message);
+//     logHelper('onMessage', message);
 //     // Handle credential API calls
 //     if (message.type === 'CREDENTIAL_API_CALL') {
 //         // Get current count from storage and increment
@@ -27,7 +27,7 @@
 //     // Handle log messages
 //     else if (message.type === 'LOG') {
 //         const source = sender.tab ? 'Content' : 'Popup';
-//         console.log(`[${source}]`, message.message);
+//         logHelper(`[${source}]`, message.message);
 //     }
 // });
 
@@ -41,8 +41,12 @@ import { AttackHookMisBinding } from './attacks/attack_hook_mis_binding';
 // const log = getLogger('background');
 
 chrome.runtime.onInstalled.addListener(() => {
-    console.log('Extension installed');
+    logHelper('Extension installed');
 });
+
+function logHelper(...msg: any[]): void {
+    console.log('[Background] ', msg);
+}
 
 
 // Needs to be stored in local
@@ -79,9 +83,9 @@ let attackType: AttackHook | null = null;  // Initialize as null
 //     });
 //     // Generate new attack hook based on attack type
 //     if (attackType == "attack-sync-login") {
-//         console.log(details.url);
+//         logHelper(details.url);
 //         if (details.url === "https://testbank.com:8443/api/v1/authenticate/finish") {
-//             console.log("Request sent to the specified URL:", details.url);
+//             logHelper("Request sent to the specified URL:", details.url);
 //             chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
 //               // Retrieve the active tab
 //               var activeTab = tabs[0];
@@ -93,7 +97,7 @@ let attackType: AttackHook | null = null;  // Initialize as null
 //                     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
 //               // Retrieve the active tab
 //               var activeTab = tabs[0];
-//               console.log("Detected 2FAA URL");
+//               logHelper("Detected 2FAA URL");
 //               // Send a message to the content script
 //               chrome.tabs.sendMessage(activeTab.id, { message: "push-iframe-code" });
 //             });
@@ -144,9 +148,9 @@ let attackType: AttackHook | null = null;  // Initialize as null
  *   - undefined if the sender tab is invalid
  */
 const create = async (msg, sender) => {
-    console.log('In create');
+    logHelper('In create');
     if (!sender.tab || !sender.tab.id) {
-        console.log('received create event without a tab ID');
+        logHelper('received create event without a tab ID');
         return;
     }
 
@@ -171,7 +175,7 @@ const create = async (msg, sender) => {
  */
 const sign = async (msg, sender) => {
     if (!sender.tab || !sender.tab.id) {
-        console.log('received sign event without a tab ID');
+        logHelper('received sign event without a tab ID');
         return;
     }
 
@@ -183,7 +187,7 @@ const sign = async (msg, sender) => {
 };
 
 function convertAttackToHook(attackName) {
-    console.log("Converting attack to hook:", attackName);
+    logHelper("Converting attack to hook:", attackName);
     switch(attackName) {
         case 'attack-mis-binding':
             attackType = new AttackHookMisBinding();
@@ -208,7 +212,7 @@ function convertAttackToHook(attackName) {
 
 async function setAttackImpl(attackName) {
     convertAttackToHook(attackName);
-    console.log("Attack type set to:", attackType!.getName());
+    logHelper("Attack type set to:", attackType!.getName());
     // Save to local storage
     await setAttackTypeInStorage(attackName);
     // This may change passToOrig depending on attack type. Send message to the back if needed
@@ -220,18 +224,18 @@ async function sendPassToOrigValue() {
     if (!attackType) {
         await getAttackType();
     }
-    console.log("SEND FUNCT", attackType!.getName());
+    logHelper("SEND FUNCT", attackType!.getName());
     if (attackType!.getName() === 'attack-double-binding2') {
         passToOrig = false;
-        console.log("INFAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLSSSSSSSSSSSSEEEEEEEE");
+        logHelper("INFAAAAAAAAAAAAAAALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLSSSSSSSSSSSSEEEEEEEE");
     }
-    console.log("value of passToOrig passed from back", passToOrig)
+    logHelper("value of passToOrig passed from back", passToOrig)
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
         var activeTab = tabs[0];
         if (activeTab.id) {
             chrome.tabs.sendMessage(activeTab.id, { message: 'passToOrig', val: passToOrig});
         } else {
-            console.log("BROKEN FUNCTIONALITY")
+            logHelper("BROKEN FUNCTIONALITY")
         }
     });
 }
@@ -239,22 +243,22 @@ async function sendPassToOrigValue() {
 // Initialize attack type when service worker starts. Put in on message receive, because I know the service will start up then if it is idle, but there might be a better way.
 async function refreshAttackType() {
     if (attackType) {
-        console.log("No need to refresh attack type")
+        logHelper("No need to refresh attack type")
         return;
     }
-    console.log("Refreshing attack type");
+    logHelper("Refreshing attack type");
     const result = await chrome.storage.local.get(['attackType'])
-    console.log("Result from local storage:", result.attackType);
+    logHelper("Result from local storage:", result.attackType);
     if (result.attackType) {
-        console.log("Creating new AttackHook", result.attackType);
+        logHelper("Creating new AttackHook", result.attackType);
         convertAttackToHook(result.attackType);
     } else {
         // Default to none if nothing in storage
-        console.log("Creating new AttackHookNone")
+        logHelper("Creating new AttackHookNone")
         attackType = new AttackHookNone();
         await chrome.storage.local.set({ attackType: 'none' });
     }
-    console.log("New attack type refreshed:", attackType);
+    logHelper("New attack type refreshed:", attackType);
 }
 
 
@@ -268,27 +272,28 @@ async function getAttackType(): Promise<AttackHook> {
 }
 
 async function setAttackTypeInStorage(attackName) {
-    console.log("Setting...", attackName);
+    logHelper("Setting...", attackName);
     await chrome.storage.local.set({ attackType: attackName });
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    console.log('Received form data:', msg);
+    logHelper('Received form data:', msg);
     
     // Create a response handler that ensures proper async flow
     const handleMessage = async () => {
         try {
             // await refreshAttackType();
-            // console.log('Attack type after refresh:', attackType);
+            // logHelper('Attack type after refresh:', attackType);
 
             switch (msg.type) {
                 case 'attack-type-change':
                     await setAttackImpl(msg.newAttackType);
-                    console.log("Attack type changed:", attackType);
+                    logHelper("Attack type changed:", attackType);
+                    sendResponse({message: 'success', val: 'test'});
                     break;
                 case 'attack-type-get':
                     const currentType = await getAttackType();
-                    console.log("Attack type in switch:", currentType);
+                    logHelper("Attack type in switch:", currentType);
                     sendResponse({
                         type: 'attack-type-get-response',
                         attackType: currentType.getName()
