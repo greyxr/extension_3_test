@@ -2,7 +2,7 @@
   "scripts": {
     "man_build": "rimraf ./dist/ && tsc && cp manifest.json dist/manifest.json && cp inject.js dist/inject.js && cp popup.js dist/popup.js && cp popup.html dist/popup.html && node fix_imports.js",
     "watch": "rimraf ./dist/ && tsc --watch",
-    "build": "rimraf ./dist/ && npx webpack --config webpack.config.js && cp manifest.json dist/manifest.json && cp inject.js dist/inject.js && cp popup.js dist/popup.js && cp popup.html dist/popup.html"
+    "build": "rimraf ./dist/ && npx webpack --config webpack.config.js && cp manifest.json dist/manifest.json && cp popup.js dist/popup.js && cp popup.html dist/popup.html"
   },
   "devDependencies": {
     "@types/cbor": "^5.0.1",

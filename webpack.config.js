@@ -13,7 +13,8 @@ export default {
         content: './content.ts',
         storage: './storage.ts',
         webauthn: './webauthn.ts',
-        crypto: './crypto.ts'
+        crypto: './crypto.ts',
+        inject: './inject.ts'
       },
     optimization: { minimize: false },
     devtool: 'cheap-module-source-map', // Running in dev mode causes no-unsafe-eval errors
