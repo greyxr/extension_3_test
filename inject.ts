@@ -84,12 +84,31 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
   
       const credential = webauthnParse(webauthnResponse.resp.credential);
       credential.getClientExtensionResults = () => ({});
+
+      Object.defineProperty(credential, 'toJSON', {
+        value: function() { return {
+          id: this.id,
+          rawId: byteArrayToBase64(new Uint8Array(this.rawId), true),
+          response: {
+            attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
+            clientDataJSON: byteArrayToBase64(new Uint8Array(this.response.clientDataJSON)),
+            authenticatorData: byteArrayToBase64(new Uint8Array(this.response.authenticatorData)),
+            signature: byteArrayToBase64(new Uint8Array(this.response.signature)),
+            userHandle: byteArrayToBase64(new Uint8Array(this.response.userHandle)),
+          },
+          type: this.type,
+          authenticatorAttachment: this.authenticatorAttachment
+        } },
+        configurable: true,
+        writable: true
+      });
+
       credential.__proto__ = window['PublicKeyCredential'].prototype;
 
       // We need to add an empty authenticatorAttachment to prevent illegal invocation on many sites
       Object.defineProperty(credential, 'authenticatorAttachment', {
         get() {
-          return null;
+          return "platform";
         }
       });
 
