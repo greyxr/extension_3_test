@@ -137,7 +137,7 @@ export const generateRegistrationKeyAndAttestation = async (
     console.log('client Data', clientData);
     console.log('rpID passed to crypto function', rpID);
 
-    const clientDataDigest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
+    const clientDataDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
     // const clientDataHash = new TextDecoder("utf-8").decode(new Uint8Array(clientDataDigest));
     const clientDataHash = new Uint8Array(clientDataDigest);
 
@@ -172,13 +172,13 @@ export const generateRegistrationKeyAndAttestation = async (
 
     return {
         getClientExtensionResults: () => ({}),
-        id: keyID,
-        rawId: base64ToByteArray(keyID, true),
-        response: {
+            id: keyID,
+            rawId: base64ToByteArray(keyID, true),
+            response: {
             attestationObject,
-            clientDataJSON: base64ToByteArray(window.btoa(clientData), true),
+            clientDataJSON: base64ToByteArray(btoa(clientData), true),
         },
-        type: 'public-key',
+            type: 'public-key',
     } as unknown as PublicKeyCredential;
 };
 

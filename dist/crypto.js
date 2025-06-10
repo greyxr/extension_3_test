@@ -12058,7 +12058,7 @@ class ECDSA {
         if (!namedCurve) {
             throw new Error(`could not find a named curve for algorithm ${algorithm}`);
         }
-        const keyPair = await window.crypto.subtle.generateKey({ name: 'ECDSA', namedCurve }, true, ['sign']);
+        const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve }, true, ['sign']);
         return new ECDSA(algorithm, keyPair.privateKey, keyPair.publicKey);
     }
     constructor(algorithm, privateKey, publicKey) {
@@ -12132,7 +12132,7 @@ class ECDSA {
     //     }
     // All below need to be fixed
     async generateAuthenticatorData(rpID, counter, rawId) {
-        const rpIdDigest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
+        const rpIdDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
         const CKEY_ID = new Uint8Array(rawId);
         const rpIdHash = new Uint8Array(rpIdDigest);
         // CKEY_ID is a HAD-specific ID
@@ -12201,7 +12201,7 @@ class ECDSA {
             throw new Error('no private key available for signing');
         }
         const buffer = new Uint8Array(data).buffer;
-        return window.crypto.subtle.sign(this.getKeyParams(), this.privateKey, buffer // data, // new TextEncoder().encode(data),
+        return crypto.subtle.sign(this.getKeyParams(), this.privateKey, buffer // data, // new TextEncoder().encode(data),
         );
     }
     async DER_encode_signature(signature) {
@@ -12250,7 +12250,7 @@ class ECDSA {
         // In JWK the X and Y portions are Base64URL encoded (https://tools.ietf.org/html/rfc7517#section-3),
         // which is just the right type for COSE encoding (https://tools.ietf.org/html/rfc8152#section-7),
         // we just need to convert it to a byte array.
-        const exportedKey = await window.crypto.subtle.exportKey('jwk', key);
+        const exportedKey = await crypto.subtle.exportKey('jwk', key);
         const attData = new Map();
         attData.set(1, 2); // EC2 key type
         attData.set(3, this.algorithm);

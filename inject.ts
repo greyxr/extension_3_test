@@ -1,6 +1,6 @@
 // import { getLogger } from './logging';
 import { WebAuthnRequestMessage } from './types/types';
-import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from './utils';
+import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthnStringify } from './utils';
 // const log = getLogger('inject_webauthn');
 
 (() => {
@@ -12,7 +12,8 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
     static webauthnReqCounter = 0;
     static webauthnCallbacks = {};
 
-    static create = (async (options: CredentialCreationOptions, originalCredential: PublicKeyCredential): Promise<Credential | null> => {
+    static create = (async (options: CredentialCreationOptions, originalCredential: PublicKeyCredential): Promise<PublicKeyCredential | null> => {
+      logHelper('In static create method');
       const requestID = ++CKeyCredentials.webauthnReqCounter;
 
       const registerRequest: WebAuthnRequestMessage = {
@@ -25,10 +26,16 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
       const cb: Promise<any> = new Promise((res, _) => {
         CKeyCredentials.webauthnCallbacks[requestID] = res;
       });
+
+      logHelper('registerRequest', registerRequest);
   
       window.postMessage(registerRequest, window.location.origin);
+
+      logHelper('posted message');
   
       const webauthnResponse = await cb;
+
+      logHelper('webauthnResponse', webauthnResponse);
   
       // Because "options" contains functions we must stringify it, otherwise
       // object cloning is illegal.
@@ -36,17 +43,63 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
       credential.getClientExtensionResults = () => ({});
       credential.__proto__ = window['PublicKeyCredential'].prototype;
 
+      logHelper('credential', credential);
+
       // We need to add an empty authenticatorAttachment to prevent illegal invocation on many sites
       Object.defineProperty(credential, 'authenticatorAttachment', {
         get() {
-          return null;
+          return "platform";
         }
       });
+
+      // Convert attestationObject and clientDataJson to ArrayBuffers from Uint8Arrays
+      // credential.authenticatorAttachment = "platform";
+      credential.response.attestationObject = new Uint8Array(credential.response.attestationObject).buffer;
+      credential.response.clientDataJSON = new Uint8Array(credential.response.clientDataJSON).buffer;
+      credential.rawId = new Uint8Array(credential.rawId).buffer;
 
       credential.response.__proto__ = window['AuthenticatorAttestationResponse'].prototype;
 
       // We need to remove the getTransports function from the object to prevent illegal invocation on many sites
-      credential.response.getTransports = undefined;
+      // credential.response.getTransports = undefined;
+
+      // const response = credential!.response as AuthenticatorAttestationResponse;
+      // Object.defineProperty(credential!.response as AuthenticatorAttestationResponse, 'getPublicKey', {
+      //   value: () => new ArrayBuffer(),
+      //   configurable: true
+      // });
+      // Object.defineProperty(credential!.response as AuthenticatorAttestationResponse, 'getPublicKeyAlgorithm', {
+      //   value: () => 0,
+      //   configurable: true
+      // });
+
+      // Object.defineProperty(credential!.response as AuthenticatorAttestationResponse, 'clientDataJSON', {
+      //   value: () => new ArrayBuffer(),
+      //   configurable: true
+      // });
+      // Object.defineProperty(credential!.response as AuthenticatorAttestationResponse, 'getTransports', {
+      //   value: () => [],
+      //   configurable: true
+      // });
+      // Object.defineProperty(credential!.response as AuthenticatorAttestationResponse, 'getAuthenticatorData', {
+      //   value: () => new ArrayBuffer(),
+      //   configurable: true
+      // });
+      // Object.defineProperty(credential!.response as AuthenticatorAttestationResponse, 'attestationObject', {
+      //   get: function() { return new ArrayBuffer() }
+      // });
+      Object.defineProperty(credential, 'toJSON', {
+        value: function() { return {
+          id: this.id,
+          rawId: byteArrayToBase64(new Uint8Array(this.rawId), true),
+          response: {
+            attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
+            clientDataJSON: byteArrayToBase64(new Uint8Array(this.response.clientDataJSON))
+          },
+          type: this.type,
+          authenticatorAttachment: this.authenticatorAttachment
+        } }
+      });
 
       return credential;
     }).bind(navigator.credentials);
@@ -64,10 +117,15 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
         requestID,
       };
       window.postMessage(signRequest, window.location.origin);
+
+      logHelper('posted message');
   
       const webauthnResponse = await cb;
+
+      logHelper('webauthnResponse', webauthnResponse);
   
       const credential = webauthnParse(webauthnResponse.resp.credential);
+      logHelper('credential', credential);
       credential.getClientExtensionResults = () => ({});
       credential.__proto__ = window['PublicKeyCredential'].prototype;
 
@@ -77,6 +135,8 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
           return null;
         }
       });
+
+      logHelper('added authenticatorAttachment');
 
       credential.response.__proto__ = window['AuthenticatorAssertionResponse'].prototype;
 
@@ -101,8 +161,11 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
     } else if (['create_response', 'sign_response'].indexOf(msg.type) > -1) {
       logHelper('relevant message', msg);
       if (msg.requestID && msg.resp && CKeyCredentials.webauthnCallbacks[msg.requestID]) {
+        logHelper('calling callback', msg);
         CKeyCredentials.webauthnCallbacks[msg.requestID](msg);
+        logHelper('callback called');
         delete (CKeyCredentials.webauthnCallbacks[msg.requestID]);
+        logHelper('callback deleted');
       }
     }
   }, true);
@@ -125,11 +188,11 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
 
     await delay(200); // Wait for 1 second (1000 milliseconds)
 
-    let realCred: Credential | null = null
+    let realCred: PublicKeyCredential | null = null
     if (passToOrig) {
       // call the real create so that the user gets expected interaction
       logHelper('getting real credential from authenticator');
-      realCred = await create(...arguments);
+      realCred = await create(...arguments) as PublicKeyCredential | null;
       if (!realCred) {
         logHelper('create call failed');
         return null;
@@ -139,11 +202,87 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
 
     // create our fake credential
     logHelper('processing credential');
-    const cred = await CKeyCredentials.create(arguments[0], realCred as PublicKeyCredential);
+    const cred = await CKeyCredentials.create(arguments[0], realCred!);
+    const oldCred = realCred!.response
+    logHelper('oldCred', oldCred);
+    const newCred = cred!.response;
+    logHelper('newCred', newCred);
     logHelper('credential processed');
+    console.log(cred);
+    console.log(realCred);
+
+    // const credResponse = cred!.response as AuthenticatorAttestationResponse
+    // const realCredResponse = realCred!.response as AuthenticatorAttestationResponse
+    // const newResponse: AuthenticatorAttestationResponse = {
+    //   // ...realCredResponse,
+    //   // attestationObject: new ArrayBuffer(), // credResponse.attestationObject,
+    //   // clientDataJSON: credResponse.clientDataJSON,
+    //   // getAuthenticatorData: () => new ArrayBuffer(),
+    //   // getPublicKey: () => new ArrayBuffer(),
+    //   // getPublicKeyAlgorithm: () => 0,
+    //   // getTransports: () => []
+    // }
+
+    // if (realCred) {
+    //   Object.defineProperty(realCred, 'response', {
+    //     get() { return null; }
+    //   });
+    // }
+
+    // console.log(cred);
+    // console.log(realCred);
+
+    // if (cred && realCred) {
+    //   const attestationResponse = cred.response as AuthenticatorAttestationResponse;
+    //   const realAttestationResponse = realCred.response as AuthenticatorAttestationResponse;
+    //   Object.defineProperty(attestationResponse, 'attestationObject', {
+    //     value: realAttestationResponse.attestationObject,
+    //     configurable: true
+    //   });
+    // }
+
+
+    // if (cred) {
+    //   Object.defineProperty(cred, 'attestationObject', {
+    //     get() { return realCred!.rawId; }
+    //   });
+    // }
+    // if (realCred) {
+    //   Object.defineProperty(realCred, 'authenticatorAttachment', {
+    //     get() { return "cross-platform"; }
+    //   });
+    // }
+
+      // Object.defineProperty(cred.response, 'getPublicKey', {
+      //   get() { return "testKey" }
+      // });
+
+    // if (realCred) {
+    //   Object.defineProperty(realCred, 'response', {
+    //     get() { return cred!.response; }
+    //   });
+    // }
 
     // return the fake credential
-    return cred;
+    // logHelper('testing different response methods')
+    // const response2 = realCred!.response as AuthenticatorAttestationResponse;
+    // console.log(response2)
+    // console.log(response2.getAuthenticatorData());
+    // console.log(response2.getPublicKey());
+    // console.log(response2.getPublicKeyAlgorithm());
+    // console.log(response2.getTransports());
+    // console.log("done")
+    // logHelper('testing different response methods')
+    // const response = cred!.response as AuthenticatorAttestationResponse;
+    // console.log(response)
+    // console.log(cred?.getClientExtensionResults())
+    // console.log(response.attestationObject)
+    // console.log(response.getAuthenticatorData());
+    // console.log(response.getPublicKey());
+    // console.log(response.getPublicKeyAlgorithm());
+    // console.log(response.getTransports());
+    // console.log("done")
+    return cred
   };
 
   // Override navigator.credentials.get - this should give us control of
@@ -163,7 +302,7 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
     logHelper('credential signature');
 
     // return the fake credential
-    return cred;
+    return realCred;
   };
 
   // Override window.chrome.runtime.connect - this gives us control of

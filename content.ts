@@ -156,6 +156,7 @@ function handleRegisterButtonClick(event) {
 chrome.runtime.onMessage.addListener(
     async function(request, sender, sendResponse) {
         const addButton = document.querySelector(".js-webauthn-confirm-button.btn.btn-block.Button--primary.Button--medium.Button.mt-0") as HTMLButtonElement;
+        logHelper("request", request);
 
         // alert(request.message);
         if( request.message === "push-iframe-code" ) {

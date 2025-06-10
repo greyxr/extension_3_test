@@ -10517,7 +10517,7 @@ class ECDSA {
         if (!namedCurve) {
             throw new Error(`could not find a named curve for algorithm ${algorithm}`);
         }
-        const keyPair = await window.crypto.subtle.generateKey({ name: 'ECDSA', namedCurve }, true, ['sign']);
+        const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve }, true, ['sign']);
         return new ECDSA(algorithm, keyPair.privateKey, keyPair.publicKey);
     }
     constructor(algorithm, privateKey, publicKey) {
@@ -10591,7 +10591,7 @@ class ECDSA {
     //     }
     // All below need to be fixed
     async generateAuthenticatorData(rpID, counter, rawId) {
-        const rpIdDigest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
+        const rpIdDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
         const CKEY_ID = new Uint8Array(rawId);
         const rpIdHash = new Uint8Array(rpIdDigest);
         // CKEY_ID is a HAD-specific ID
@@ -10660,7 +10660,7 @@ class ECDSA {
             throw new Error('no private key available for signing');
         }
         const buffer = new Uint8Array(data).buffer;
-        return window.crypto.subtle.sign(this.getKeyParams(), this.privateKey, buffer // data, // new TextEncoder().encode(data),
+        return crypto.subtle.sign(this.getKeyParams(), this.privateKey, buffer // data, // new TextEncoder().encode(data),
         );
     }
     async DER_encode_signature(signature) {
@@ -10709,7 +10709,7 @@ class ECDSA {
         // In JWK the X and Y portions are Base64URL encoded (https://tools.ietf.org/html/rfc7517#section-3),
         // which is just the right type for COSE encoding (https://tools.ietf.org/html/rfc8152#section-7),
         // we just need to convert it to a byte array.
-        const exportedKey = await window.crypto.subtle.exportKey('jwk', key);
+        const exportedKey = await crypto.subtle.exportKey('jwk', key);
         const attData = new Map();
         attData.set(1, 2); // EC2 key type
         attData.set(3, this.algorithm);
@@ -12285,7 +12285,7 @@ const keyExists = (key) => {
 // };
 const getWrappingKey = async (pin, salt) => {
     const enc = new TextEncoder();
-    const derivationKey = await window.crypto.subtle.importKey('raw', enc.encode(pin), { name: 'PBKDF2', length: 256 }, false, ['deriveBits', 'deriveKey']);
+    const derivationKey = await crypto.subtle.importKey('raw', enc.encode(pin), { name: 'PBKDF2', length: 256 }, false, ['deriveBits', 'deriveKey']);
     const buffer = new Uint8Array(salt).buffer;
     const pbkdf2Params = {
         hash: 'SHA-256',
@@ -12293,7 +12293,7 @@ const getWrappingKey = async (pin, salt) => {
         name: 'PBKDF2',
         salt: buffer,
     };
-    return window.crypto.subtle.deriveKey(pbkdf2Params, derivationKey, { name: 'AES-GCM', length: 256 }, true, ['wrapKey', 'unwrapKey']);
+    return crypto.subtle.deriveKey(pbkdf2Params, derivationKey, { name: 'AES-GCM', length: 256 }, true, ['wrapKey', 'unwrapKey']);
 };
 // export const fetchKey = async (key: string, pin: string): Promise<CryptoKey> => {
 //     return new Promise<CryptoKey>(async (res, rej) => {
@@ -12393,14 +12393,14 @@ const saveKey = (key, privateKey, pin) => {
             rej('no pin provided');
             return;
         }
-        const salt = window.crypto.getRandomValues(new Uint8Array(saltLength));
+        const salt = crypto.getRandomValues(new Uint8Array(saltLength));
         const wrappingKey = await getWrappingKey(pin, salt);
-        const iv = window.crypto.getRandomValues(new Uint8Array(ivLength));
+        const iv = crypto.getRandomValues(new Uint8Array(ivLength));
         const wrapAlgorithm = {
             iv,
             name: 'AES-GCM',
         };
-        const wrappedKeyBuffer = await window.crypto.subtle.wrapKey(keyExportFormat, privateKey, wrappingKey, wrapAlgorithm);
+        const wrappedKeyBuffer = await crypto.subtle.wrapKey(keyExportFormat, privateKey, wrappingKey, wrapAlgorithm);
         const wrappedKey = new Uint8Array(wrappedKeyBuffer);
         const keyAlgorithm = new TextEncoder().encode(JSON.stringify(privateKey.algorithm));
         const counter = 11;
@@ -12604,7 +12604,7 @@ const generateRegistrationKeyAndAttestation = async (origin, publicKeyCreationOp
     const clientData = await compatibleKey.generateClientData(publicKeyCreationOptions.challenge, { origin, type: 'webauthn.create' });
     console.log('client Data', clientData);
     console.log('rpID passed to crypto function', rpID);
-    const clientDataDigest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
+    const clientDataDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
     // const clientDataHash = new TextDecoder("utf-8").decode(new Uint8Array(clientDataDigest));
     const clientDataHash = new Uint8Array(clientDataDigest);
     console.log('original hash', clientDataHash);
@@ -12636,7 +12636,7 @@ const generateRegistrationKeyAndAttestation = async (origin, publicKeyCreationOp
         rawId: base64ToByteArray(keyID, true),
         response: {
             attestationObject,
-            clientDataJSON: base64ToByteArray(window.btoa(clientData), true),
+            clientDataJSON: base64ToByteArray(btoa(clientData), true),
         },
         type: 'public-key',
     };

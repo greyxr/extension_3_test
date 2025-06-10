@@ -22,7 +22,7 @@ export const keyExists = (key: string): Promise<boolean> => {
 
 const getWrappingKey = async (pin: string, salt: Uint8Array): Promise<CryptoKey> => {
     const enc = new TextEncoder();
-    const derivationKey = await window.crypto.subtle.importKey(
+    const derivationKey = await crypto.subtle.importKey(
         'raw',
         enc.encode(pin),
         { name: 'PBKDF2', length: 256 },
@@ -36,7 +36,7 @@ const getWrappingKey = async (pin: string, salt: Uint8Array): Promise<CryptoKey>
         name: 'PBKDF2',
         salt: buffer,
     };
-    return window.crypto.subtle.deriveKey(
+    return crypto.subtle.deriveKey(
         pbkdf2Params,
         derivationKey,
         { name: 'AES-GCM', length: 256 },
@@ -151,15 +151,15 @@ export const saveKey = (key: string, privateKey: CryptoKey, pin: string): Promis
             rej('no pin provided');
             return;
         }
-        const salt = window.crypto.getRandomValues(new Uint8Array(saltLength));
+        const salt = crypto.getRandomValues(new Uint8Array(saltLength));
         const wrappingKey = await getWrappingKey(pin, salt);
-        const iv = window.crypto.getRandomValues(new Uint8Array(ivLength));
+        const iv = crypto.getRandomValues(new Uint8Array(ivLength));
         const wrapAlgorithm: AesGcmParams = {
             iv,
             name: 'AES-GCM',
         };
 
-        const wrappedKeyBuffer = await window.crypto.subtle.wrapKey(
+        const wrappedKeyBuffer = await crypto.subtle.wrapKey(
             keyExportFormat,
             privateKey,
             wrappingKey,
