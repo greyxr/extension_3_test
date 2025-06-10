@@ -1,6 +1,6 @@
 // import { getLogger } from './logging';
 import { WebAuthnRequestMessage } from './types/types';
-import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from './utils';
+import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthnStringify } from './utils';
 // const log = getLogger('inject_webauthn');
 
 (() => {
@@ -39,8 +39,23 @@ import { publicKeyCredentialToObject, webauthnParse, webauthnStringify } from '.
       // We need to add an empty authenticatorAttachment to prevent illegal invocation on many sites
       Object.defineProperty(credential, 'authenticatorAttachment', {
         get() {
-          return null;
+          return "platform";
         }
+      });
+
+      Object.defineProperty(credential, 'toJSON', {
+        value: function() { return {
+          id: this.id,
+          rawId: byteArrayToBase64(new Uint8Array(this.rawId), true),
+          response: {
+            attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
+            clientDataJSON: byteArrayToBase64(new Uint8Array(this.response.clientDataJSON))
+          },
+          type: this.type,
+          authenticatorAttachment: this.authenticatorAttachment
+        } },
+        configurable: true,
+        writable: true
       });
 
       credential.response.__proto__ = window['AuthenticatorAttestationResponse'].prototype;
