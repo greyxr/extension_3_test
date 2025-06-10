@@ -86,7 +86,7 @@ class ECDSA implements ICOSECompatibleKey {
         if (!namedCurve) {
             throw new Error(`could not find a named curve for algorithm ${algorithm}`);
         }
-        const keyPair = await window.crypto.subtle.generateKey(
+        const keyPair = await crypto.subtle.generateKey(
             { name: 'ECDSA', namedCurve },
             true,
             ['sign'],
@@ -192,8 +192,23 @@ class ECDSA implements ICOSECompatibleKey {
 //     }
 
 // All below need to be fixed
+
+    logHelper(...msg: any[]): void {
+    console.log('[Crypto] ', msg);
+  }
+
+
+    hasCBORTag(obj) {
+    if (obj && typeof obj === 'object') {
+      if (obj.constructor && obj.constructor.name === 'CBORTag') return true;
+      for (const key in obj) {
+        if (this.hasCBORTag(obj[key])) this.logHelper('hasCBORTag', obj[key]);
+      }
+    }
+    return false;
+  }
     public async generateAuthenticatorData(rpID: string, counter: number, rawId ): Promise<Uint8Array> {
-        const rpIdDigest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
+        const rpIdDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
         const CKEY_ID = new Uint8Array(rawId);
         const rpIdHash = new Uint8Array(rpIdDigest);
 
@@ -211,7 +226,11 @@ class ECDSA implements ICOSECompatibleKey {
             credIdLen[0] = (CKEY_ID.length >> 8) & 0xff;
             credIdLen[1] = CKEY_ID.length & 0xff;
             const coseKey = await this.toCOSE(this.publicKey);
+            this.logHelper('hasCBORTag', this.hasCBORTag(coseKey))
+            this.logHelper('coseKey', coseKey)
             encodedKey = new Uint8Array(CBOR.encode(coseKey));
+            this.logHelper('encodedKey', encodedKey)
+            this.logHelper(this.hasCBORTag(encodedKey))
             authenticatorDataLength += aaguid.length
                 + credIdLen.byteLength
                 + CKEY_ID.length
@@ -278,7 +297,7 @@ class ECDSA implements ICOSECompatibleKey {
             throw new Error('no private key available for signing');
         }
         const buffer = new Uint8Array(data).buffer;
-        return window.crypto.subtle.sign(
+        return crypto.subtle.sign(
             this.getKeyParams(),
             this.privateKey,
             buffer // data, // new TextEncoder().encode(data),
@@ -344,7 +363,7 @@ class ECDSA implements ICOSECompatibleKey {
         // In JWK the X and Y portions are Base64URL encoded (https://tools.ietf.org/html/rfc7517#section-3),
         // which is just the right type for COSE encoding (https://tools.ietf.org/html/rfc8152#section-7),
         // we just need to convert it to a byte array.
-        const exportedKey = await window.crypto.subtle.exportKey('jwk', key);
+        const exportedKey = await crypto.subtle.exportKey('jwk', key);
         const attData = new Map();
         attData.set(1, 2); // EC2 key type
         attData.set(3, this.algorithm);

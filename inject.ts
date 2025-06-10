@@ -15,20 +15,28 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
     static create = (async (options: CredentialCreationOptions, originalCredential: PublicKeyCredential): Promise<Credential | null> => {
       const requestID = ++CKeyCredentials.webauthnReqCounter;
 
+      logHelper('in static create');
+
       const registerRequest: WebAuthnRequestMessage = {
         type: 'create',
         originalCredential: originalCredential ? webauthnStringify(publicKeyCredentialToObject(originalCredential)) : '',
         options: webauthnStringify(options),
         requestID,
       };
+
+      logHelper('setting callback')
   
       const cb: Promise<any> = new Promise((res, _) => {
         CKeyCredentials.webauthnCallbacks[requestID] = res;
       });
+
+      logHelper('posting register request')
   
       window.postMessage(registerRequest, window.location.origin);
   
       const webauthnResponse = await cb;
+
+      logHelper('got webauthn response:', webauthnResponse)
   
       // Because "options" contains functions we must stringify it, otherwise
       // object cloning is illegal.
