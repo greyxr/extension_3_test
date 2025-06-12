@@ -87,7 +87,7 @@ export class AttackHookMisBinding extends AttackHook {
         this.logHelper('Origin in background sign function', origin);
 
         try {
-            const credential = await generateKeyRequestAndAttestation(origin!, opts.publicKey, `9999`);
+            const credential = await generateKeyRequestAndAttestation(origin!, opts.publicKey, `9999`, msg.originalCredential);
             const authenticatedResponseData: WebAuthnResponseMessage = {
                 credential: webauthnStringify(credential),
                 requestID: msg.requestID,

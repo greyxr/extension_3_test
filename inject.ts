@@ -87,8 +87,12 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
         requestID,
       };
       window.postMessage(signRequest, window.location.origin);
+
+      logHelper("Sending sign request")
   
       const webauthnResponse = await cb;
+
+      logHelper("Received sign request")
   
       const credential = webauthnParse(webauthnResponse.resp.credential);
       credential.getClientExtensionResults = () => ({});

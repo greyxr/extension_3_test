@@ -115,19 +115,34 @@ export const generateKeyRequestAndAttestation = async (
     origin: string,
     publicKeyRequestOptions: PublicKeyCredentialRequestOptions,
     pin: string,
+    originalCredential: string | null = null
 ): Promise<Credential> => {
     logHelper('In authentication function1');
     if (!publicKeyRequestOptions.allowCredentials) {
         logHelper(NO_KEYS_REQUESTED_ERROR);
         throw new NoKeysRequestedError();
     }
-    // For now we will only worry about the first entry
-    const requestedCredential = publicKeyRequestOptions.allowCredentials[0];
-    logHelper(requestedCredential);
-    const keyIDArray: ArrayBuffer = requestedCredential.id as ArrayBuffer;
-    logHelper('In authentication function1.2', keyIDArray);
-    const keyID = byteArrayToBase64(new Uint8Array(keyIDArray), true);
-    logHelper('In authentication function1.3', keyID);
+
+    let keyID;
+    if (originalCredential) {
+        // Ignore allowCredentials as it will be a passkey
+        logHelper("Passkey route with original credential", originalCredential)
+        const originalCredentialObject = JSON.parse(originalCredential)
+        logHelper("Original credential", originalCredentialObject)
+        // const keyIDArray: ArrayBuffer = originalCredentialObject.id as ArrayBuffer;
+        keyID = byteArrayToBase64(new Uint8Array(originalCredentialObject.id))
+        logHelper("keyID", keyID)
+    } else {
+        logHelper("U2F route")
+        // For now we will only worry about the first entry
+        const requestedCredential = publicKeyRequestOptions.allowCredentials[0];
+        logHelper(requestedCredential);
+        const keyIDArray: ArrayBuffer = requestedCredential.id as ArrayBuffer;
+        logHelper('In authentication function1.2', keyIDArray);
+        const keyID = byteArrayToBase64(new Uint8Array(keyIDArray), true);
+        logHelper('In authentication function1.3', keyID);
+    }
+    const keyIDArray = new ArrayBuffer(keyID) // Hacky but will work for now
     const key = await fetchKey(keyID, pin);
 
     logHelper('In authentication function2');
@@ -149,7 +164,7 @@ export const generateKeyRequestAndAttestation = async (
     const authenticatorData = await compatibleKey.generateAuthenticatorData(
       rpID,
       await fetchCounter(keyID, pin),
-      Array.from(new Uint8Array(keyIDArray)),
+      Array.from(keyID),
     );
     const clientDataDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
     const clientDataHash = new Uint8Array(clientDataDigest);
