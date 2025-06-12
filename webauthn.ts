@@ -1,7 +1,7 @@
 import * as CBOR from 'cbor';
 import { getCompatibleKey, getCompatibleKeyFromCryptoKey} from './crypto';
 // import { getLogger } from './logging';
-import { keyExists, saveKey } from './storage';
+import { fetchCounter, fetchKey, incrementCounter, keyExists, saveKey } from './storage';
 import { base64ToByteArray, byteArrayToBase64, getDomainFromOrigin } from './utils';
 
 // const log = getLogger('webauthn');
@@ -111,69 +111,69 @@ export const generateRegistrationKeyAndAttestation = async (
     } as unknown as PublicKeyCredential;
 };
 
-// export const generateKeyRequestAndAttestation = async (
-//     origin: string,
-//     publicKeyRequestOptions: PublicKeyCredentialRequestOptions,
-//     pin: string,
-// ): Promise<Credential> => {
-//     logHelper('In authentication function1');
-//     if (!publicKeyRequestOptions.allowCredentials) {
-//         logHelper(NO_KEYS_REQUESTED_ERROR);
-//         throw new NoKeysRequestedError();
-//     }
-//     // For now we will only worry about the first entry
-//     const requestedCredential = publicKeyRequestOptions.allowCredentials[0];
-//     logHelper(requestedCredential);
-//     const keyIDArray: ArrayBuffer = requestedCredential.id as ArrayBuffer;
-//     logHelper('In authentication function1.2', keyIDArray);
-//     const keyID = byteArrayToBase64(new Uint8Array(keyIDArray), true);
-//     logHelper('In authentication function1.3', keyID);
-//     const key = await fetchKey(keyID, pin);
+export const generateKeyRequestAndAttestation = async (
+    origin: string,
+    publicKeyRequestOptions: PublicKeyCredentialRequestOptions,
+    pin: string,
+): Promise<Credential> => {
+    logHelper('In authentication function1');
+    if (!publicKeyRequestOptions.allowCredentials) {
+        logHelper(NO_KEYS_REQUESTED_ERROR);
+        throw new NoKeysRequestedError();
+    }
+    // For now we will only worry about the first entry
+    const requestedCredential = publicKeyRequestOptions.allowCredentials[0];
+    logHelper(requestedCredential);
+    const keyIDArray: ArrayBuffer = requestedCredential.id as ArrayBuffer;
+    logHelper('In authentication function1.2', keyIDArray);
+    const keyID = byteArrayToBase64(new Uint8Array(keyIDArray), true);
+    logHelper('In authentication function1.3', keyID);
+    const key = await fetchKey(keyID, pin);
 
-//     logHelper('In authentication function2');
+    logHelper('In authentication function2');
 
-//     if (!key) {
-//         throw new Error(`key with id ${keyID} not found`);
-//     }
-//     const compatibleKey = await getCompatibleKeyFromCryptoKey(key);
-//     const clientData = await compatibleKey.generateClientData(
-//         publicKeyRequestOptions.challenge as ArrayBuffer,
-//         {
-//             origin,
-//             type: 'webauthn.get',
-//         },
-//     );
-//     logHelper('In authentication function3');
+    if (!key) {
+        throw new Error(`key with id ${keyID} not found`);
+    }
+    const compatibleKey = await getCompatibleKeyFromCryptoKey(key);
+    const clientData = await compatibleKey.generateClientData(
+        publicKeyRequestOptions.challenge as ArrayBuffer,
+        {
+            origin,
+            type: 'webauthn.get',
+        },
+    );
+    logHelper('In authentication function3');
 
-//     const rpID = publicKeyRequestOptions.rpId || getDomainFromOrigin(origin);
-//     const authenticatorData = await compatibleKey.generateAuthenticatorData(
-//       rpID,
-//       await fetchCounter(keyID, pin),
-//       Array.from(new Uint8Array(keyIDArray)),
-//     );
-//     const clientDataDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
-//     const clientDataHash = new Uint8Array(clientDataDigest);
+    const rpID = publicKeyRequestOptions.rpId || getDomainFromOrigin(origin);
+    const authenticatorData = await compatibleKey.generateAuthenticatorData(
+      rpID,
+      await fetchCounter(keyID, pin),
+      Array.from(new Uint8Array(keyIDArray)),
+    );
+    const clientDataDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clientData));
+    const clientDataHash = new Uint8Array(clientDataDigest);
 
-//     // Increment counter
-//     await incrementCounter(keyID, pin);
+    // Increment counter
+    await incrementCounter(keyID, pin);
 
-//     const mergedArray = new Uint8Array(authenticatorData.length + clientDataHash.length);
-//     mergedArray.set(authenticatorData);
-//     mergedArray.set(clientDataHash, authenticatorData.length);
-//     logHelper('merged array', mergedArray);
+    const mergedArray = new Uint8Array(authenticatorData.length + clientDataHash.length);
+    mergedArray.set(authenticatorData);
+    mergedArray.set(clientDataHash, authenticatorData.length);
+    logHelper('merged array', mergedArray);
 
-//     const signature = await compatibleKey.DER_encode_signature(await compatibleKey.sign(mergedArray));
+    const signature = await compatibleKey.DER_encode_signature(await compatibleKey.sign(mergedArray));
 
-//     return {
-//         id: keyID,
-//         rawId: keyIDArray,
-//         response: {
-//             authenticatorData,
-//             clientDataJSON: base64ToByteArray(btoa(clientData), true),
-//             signature,
-//             // userHandle: new ArrayBuffer(0), // This should be nullable
-//             userHandle: null
-//         },
-//         type: 'public-key',
-//     } as Credential;
-// };
+    return {
+        id: keyID,
+        rawId: keyIDArray,
+        response: {
+            authenticatorData,
+            clientDataJSON: base64ToByteArray(btoa(clientData), true),
+            signature,
+            // userHandle: new ArrayBuffer(0), // This should be nullable
+            userHandle: null
+        },
+        type: 'public-key',
+    } as Credential;
+};
