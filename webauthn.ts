@@ -60,7 +60,7 @@ export const generateRegistrationKeyAndAttestation = async (
     const authenticatorData = await compatibleKey.generateAuthenticatorData(rpID, 10, rawId);
     const clientData = await compatibleKey.generateClientData(
         publicKeyCreationOptions.challenge as ArrayBuffer,
-        { origin, type: 'webauthn.create' },
+        { origin, type: 'webauthn.create', crossOrigin: false },
     );
 
     logHelper('client Data', clientData);
@@ -84,11 +84,11 @@ export const generateRegistrationKeyAndAttestation = async (
 
     const attestationObject_buffer = CBOR.encode({
         attStmt: {
-            alg: compatibleKey.algorithm,
-            sig: Buffer.from(signature),
+            // alg: compatibleKey.algorithm,
+            // sig: Buffer.from(signature),
         },
         authData: Buffer.from(authenticatorData),
-        fmt: 'packed',
+        fmt: 'none',
     });
     console.log('stepp 6');
 

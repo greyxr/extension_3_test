@@ -112,7 +112,7 @@ class ECDSA implements ICOSECompatibleKey {
     public async generateClientData(challenge: ArrayBuffer, extraOptions: any): Promise<string> {
         return JSON.stringify({
             challenge: byteArrayToBase64(Buffer.from(challenge), true),
-            hashAlgorithm: coseEllipticCurveNames[ECDSA.ellipticCurveKeys[this.algorithm]],
+            // hashAlgorithm: coseEllipticCurveNames[ECDSA.ellipticCurveKeys[this.algorithm]],
             ...extraOptions,
         });
     }
