@@ -154,6 +154,8 @@ class ECDSA implements ICOSECompatibleKey {
         // 1 byte for flags
         // user-presence flag goes on the right-most bit
         authenticatorData[rpIdHash.length] = 1;
+        // Set user verification bit
+        authenticatorData[rpIdHash.length] |= (1 << 2);
         if (this.publicKey) {
             // attestation flag goes on the 7th bit (from the right)
             authenticatorData[rpIdHash.length] |= (1 << 6);
