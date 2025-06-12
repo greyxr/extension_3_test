@@ -1,5 +1,9 @@
-import * as CBOR from 'cbor'
+import * as CBOR from 'cbor';
 import { base64ToByteArray, byteArrayToBase64 } from './utils';
+
+function logHelper(...msg: any[]): void {
+    console.log('[Crypto] ', msg);
+}
 
 // Generated with pseudo random values via
 // https://developer.mozilla.org/en-US/docs/Web/API/Crypto/getRandomValues
@@ -50,15 +54,6 @@ interface ICOSECompatibleKey {
     DER_encode_signature(signature): Promise<any>;
 }
 
-// interface DERCompatibleKey {
-//     algorithm: number;
-//     privateKey: CryptoKey;
-//     publicKey?: CryptoKey;
-//     generateClientData(challenge: ArrayBuffer, extraOptions: any): Promise<string>;
-//     generateAuthenticatorData(rpID: string, counter: number, rawId): Promise<Uint8Array>;
-//     sign(clientData: Uint8Array): Promise<any>;
-// }
-
 
 export const CKEY_ID2 = new Uint8Array([
     194547236, 76082241, 3628762690, 4137210381,
@@ -76,7 +71,7 @@ class ECDSA implements ICOSECompatibleKey {
 
     public static async fromCOSEAlgorithm(algorithm: number): Promise<ECDSA> {
         // Creating the key
-        let namedCurve: string | null = null
+        let namedCurve: string = ''
         for (const k in ellipticNamedCurvesToCOSE) {
             if (ellipticNamedCurvesToCOSE[k] === algorithm) {
                 namedCurve = k;
@@ -123,99 +118,15 @@ class ECDSA implements ICOSECompatibleKey {
     }
 
 
-
-// public async generateAuthenticatorData2(rpID: string, counter: number): Promise<Uint8Array> {
-//         const rpIdDigest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
-//         const rpIdHash = new Uint8Array(rpIdDigest);
-
-//         // CKEY_ID2 is a HAD-specific ID
-//         let aaguid: Uint8Array;
-//         let credIdLen: Uint8Array;
-//         let encodedKey: Uint8Array;
-
-//         let authenticatorDataLength = rpIdHash.length + 1 + 4;
-//         if (this.publicKey) {
-//             aaguid = CKEY_ID2.slice(0, 16);
-//             // 16-bit unsigned big-endian integer.
-//             credIdLen = new Uint8Array(2);
-//             credIdLen[0] = (CKEY_ID2.length >> 8) & 0xff;
-//             credIdLen[1] = CKEY_ID2.length & 0xff;
-//             const coseKey = await this.toCOSE(this.publicKey);
-//             encodedKey = new Uint8Array(CBOR.encode(coseKey));
-//             authenticatorDataLength += aaguid.length
-//                 + credIdLen.byteLength
-//                 + CKEY_ID2.length
-//                 + encodedKey.byteLength;
-//         }
-
-//         const authenticatorData = new Uint8Array(authenticatorDataLength);
-//         let offset = 0;
-
-//         // 32 bytes for the RP ID hash
-//         authenticatorData.set(rpIdHash, 0);
-//         offset += rpIdHash.length;
-
-//         // 1 byte for flags
-//         // user-presence flag goes on the right-most bit
-//         authenticatorData[rpIdHash.length] = 1;
-//         if (this.publicKey) {
-//             // attestation flag goes on the 7th bit (from the right)
-//             authenticatorData[rpIdHash.length] |= (1 << 6);
-//             offset++;
-//         }
-
-//         // 4 bytes for the counter. big-endian uint32
-//         // https://www.w3.org/TR/webauthn/#signature-counter
-//         authenticatorData.set(counterToBytes(counter), offset);
-//         offset += counterToBytes(counter).length;
-
-//         if (!this.publicKey) {
-//             return authenticatorData;
-//         }
-
-//         // 16 bytes for the Authenticator Attestation GUID
-//         authenticatorData.set(aaguid, offset);
-//         offset += aaguid.length;
-
-//         // 2 bytes for the authenticator key ID length. 16-bit unsigned big-endian integer.
-//         authenticatorData.set(credIdLen, offset);
-//         offset += credIdLen.byteLength;
-
-//         // Variable length authenticator key ID
-//         authenticatorData.set(CKEY_ID2, offset);
-//         offset += CKEY_ID2.length;
-
-//         // Variable length public key
-//         authenticatorData.set(encodedKey, offset);
-
-//         return authenticatorData;
-//     }
-
-// All below need to be fixed
-
-    logHelper(...msg: any[]): void {
-    console.log('[Crypto] ', msg);
-  }
-
-
-    hasCBORTag(obj) {
-    if (obj && typeof obj === 'object') {
-      if (obj.constructor && obj.constructor.name === 'CBORTag') return true;
-      for (const key in obj) {
-        if (this.hasCBORTag(obj[key])) this.logHelper('hasCBORTag', obj[key]);
-      }
-    }
-    return false;
-  }
     public async generateAuthenticatorData(rpID: string, counter: number, rawId ): Promise<Uint8Array> {
         const rpIdDigest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(rpID));
         const CKEY_ID = new Uint8Array(rawId);
         const rpIdHash = new Uint8Array(rpIdDigest);
 
         // CKEY_ID is a HAD-specific ID
-        let aaguid: Uint8Array | null = null
-        let credIdLen: Uint8Array | null = null
-        let encodedKey: Uint8Array | null = null
+        let aaguid: Uint8Array;
+        let credIdLen: Uint8Array;
+        let encodedKey: Uint8Array;
 
         let authenticatorDataLength = rpIdHash.length + 1 + 4;
         if (this.publicKey) {
@@ -226,11 +137,7 @@ class ECDSA implements ICOSECompatibleKey {
             credIdLen[0] = (CKEY_ID.length >> 8) & 0xff;
             credIdLen[1] = CKEY_ID.length & 0xff;
             const coseKey = await this.toCOSE(this.publicKey);
-            this.logHelper('hasCBORTag', this.hasCBORTag(coseKey))
-            this.logHelper('coseKey', coseKey)
-            encodedKey = new Uint8Array(CBOR.encode(coseKey));
-            this.logHelper('encodedKey', encodedKey)
-            this.logHelper(this.hasCBORTag(encodedKey))
+            encodedKey = Buffer.from(CBOR.encode(coseKey));
             authenticatorDataLength += aaguid.length
                 + credIdLen.byteLength
                 + CKEY_ID.length
@@ -262,32 +169,26 @@ class ECDSA implements ICOSECompatibleKey {
             return authenticatorData;
         }
 
-        // Previous branch should take care of not having an aaguid, but just for safety:
-        // Remove this and replace with type assertions after testing
-        if (!aaguid || !credIdLen || !encodedKey) {
-            throw new Error("BROKEN FUNCTIONALITY IN CRYPTO")
-        }
-
         // 16 bytes for the Authenticator Attestation GUID
-        authenticatorData.set(aaguid, offset);
-        offset += aaguid.length;
+        authenticatorData.set(aaguid!, offset);
+        offset += aaguid!.length;
 
         // 2 bytes for the authenticator key ID length. 16-bit unsigned big-endian integer.
-        authenticatorData.set(credIdLen, offset);
-        offset += credIdLen.byteLength;
+        authenticatorData.set(credIdLen!, offset);
+        offset += credIdLen!.byteLength;
 
         // Variable length authenticator key ID
         authenticatorData.set(CKEY_ID, offset);
         offset += CKEY_ID.length;
 
-        console.log('credId', credIdLen);
-        console.log('CKEY_ID', CKEY_ID);
+        logHelper('credId', credIdLen!);
+        logHelper('CKEY_ID', CKEY_ID);
 
         // Variable length public key
-        authenticatorData.set(encodedKey, offset);
+        authenticatorData.set(encodedKey!, offset);
 
-        console.log('authenticator Data', byteArrayToBase64(authenticatorData));
-        console.log('authenticator Data byte array', authenticatorData);
+        logHelper('authenticator Data', byteArrayToBase64(authenticatorData));
+        logHelper('authenticator Data byte array', authenticatorData);
 
         return authenticatorData;
     }
@@ -296,19 +197,18 @@ class ECDSA implements ICOSECompatibleKey {
         if (!this.privateKey) {
             throw new Error('no private key available for signing');
         }
-        const buffer = new Uint8Array(data).buffer;
         return crypto.subtle.sign(
             this.getKeyParams(),
             this.privateKey,
-            buffer // data, // new TextEncoder().encode(data),
+            data, // new TextEncoder().encode(data),
         );
     }
 
     public async DER_encode_signature(signature) {
-        console.log('Uint signature 0', signature);
+        logHelper('Uint signature 0', signature);
         signature = new Uint8Array(signature);
 
-        console.log('Uint signature 1', signature);
+        logHelper('Uint signature 1', signature);
 
         // Extract r & s and format it in ASN1 format.
         const signHex = Array.prototype.map.call(signature, function(x) {
@@ -319,8 +219,8 @@ class ECDSA implements ICOSECompatibleKey {
         let rPre = true;
         let sPre = true;
 
-        console.log('r is ', r);
-        console.log('s is ', s);
+        logHelper('r is ', r);
+        logHelper('s is ', s);
 
         while (r.indexOf('00') === 0) {
           r = r.substring(2);
@@ -340,18 +240,18 @@ class ECDSA implements ICOSECompatibleKey {
           s = '00' + s;
         }
 
-        console.log('r2 is ', r);
-        console.log('s2 is ', s);
+        logHelper('r2 is ', r);
+        logHelper('s2 is ', s);
 
         const payload = '02' + (r.length / 2).toString(16) + r +
                       '02' + (s.length / 2).toString(16) + s;
         const der = '30' + (payload.length / 2).toString(16) + payload;
 
-        console.log('DER signature', der);
+        logHelper('DER signature', der);
         const fromHexString = (hexString) =>
              new Uint8Array(hexString.match(/.{1,2}/g).map((byte) => parseInt(byte, 16)));
         const der_uint = fromHexString(der);
-        console.log('DER signature uint8Array', der_uint);
+        logHelper('DER signature uint8Array', der_uint);
         return der_uint;
     }
 
@@ -368,9 +268,8 @@ class ECDSA implements ICOSECompatibleKey {
         attData.set(1, 2); // EC2 key type
         attData.set(3, this.algorithm);
         attData.set(-1, ECDSA.ellipticCurveKeys[this.algorithm]);
-        // Hopefully this assertion doesn't break
-        attData.set(-2, base64ToByteArray(exportedKey.x as string, true));
-        attData.set(-3, base64ToByteArray(exportedKey.y as string, true));
+        attData.set(-2, Buffer.from(base64ToByteArray(exportedKey.x!, true)));
+        attData.set(-3, Buffer.from(base64ToByteArray(exportedKey.y!, true)));
         return attData;
     }
 }
@@ -386,7 +285,7 @@ const coseAlgorithmToKeyName = {
 export const getCompatibleKey = (pkParams: PublicKeyCredentialParameters []): Promise<ICOSECompatibleKey> => {
     for (const params of (pkParams || [defaultPKParams])) {
         const algorithmName = coseAlgorithmToKeyName[params.alg];
-        console.log('algo name in crypto get getCompatibleKey', params);
+        logHelper('algo name in crypto get getCompatibleKey', params);
         if (!algorithmName) {
             continue;
         }
