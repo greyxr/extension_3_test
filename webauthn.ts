@@ -44,7 +44,9 @@ export const generateRegistrationKeyAndAttestation = async (
     const rp = publicKeyCreationOptions.rp;
     const rpID = rp.id || getDomainFromOrigin(origin);
     const user = publicKeyCreationOptions.user;
-    const userID = byteArrayToBase64(new Uint8Array(user.id as ArrayBuffer), true);
+    logHelper("user:", user)
+    const userID = new Uint8Array(user.id as ArrayBuffer) // user.displayName // byteArrayToBase64(new Uint8Array(user.id as ArrayBuffer), true);
+    logHelper("userID:", userID)
 
     const keyID = byteArrayToBase64(CKEY_ID, true);
 
@@ -97,7 +99,7 @@ export const generateRegistrationKeyAndAttestation = async (
     logHelper('raw attestation object', attestationObject);
 
     // Now that we have built all we need, let's save the key
-    await saveKey(keyID, compatibleKey.privateKey, pin);
+    await saveKey(keyID, compatibleKey.privateKey, pin, userID);
 
     return {
         getClientExtensionResults: () => ({}),
@@ -131,7 +133,7 @@ export const generateKeyRequestAndAttestation = async (
         const originalCredentialObject = JSON.parse(originalCredential)
         logHelper("Original credential", originalCredentialObject)
         // const keyIDArray: ArrayBuffer = originalCredentialObject.id as ArrayBuffer;
-        keyIDArray = new Uint8Array(originalCredentialObject.rawId)
+        keyIDArray = originalCredentialObject.id
         keyID = originalCredentialObject.id
         logHelper("keyIDArray", keyIDArray)
         logHelper("keyIDArray", typeof keyIDArray)
@@ -148,9 +150,13 @@ export const generateKeyRequestAndAttestation = async (
         logHelper('In authentication function1.3', keyID);
     }
     logHelper("Fetching key")
-    const key = await fetchKey(keyID, pin);
+    const keyObject = await fetchKey(keyID, pin);
+    logHelper("key:", keyObject)
+    const key = keyObject.key
+    const userId = keyObject.userId
 
     logHelper("Got key:", key)
+    logHelper("Got userHandle:", userId)
 
     logHelper('In authentication function2');
 
@@ -178,7 +184,7 @@ export const generateKeyRequestAndAttestation = async (
     const clientDataHash = new Uint8Array(clientDataDigest);
 
     // Increment counter
-    await incrementCounter(keyID, pin);
+    await incrementCounter(keyID, pin, userId);
 
     const mergedArray = new Uint8Array(authenticatorData.length + clientDataHash.length);
     mergedArray.set(authenticatorData);
@@ -195,7 +201,7 @@ export const generateKeyRequestAndAttestation = async (
             clientDataJSON: base64ToByteArray(btoa(clientData), true),
             signature,
             // userHandle: new ArrayBuffer(0), // This should be nullable
-            userHandle: null
+            userHandle: userId
         },
         type: 'public-key',
     } as Credential;

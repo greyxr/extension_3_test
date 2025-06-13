@@ -100,13 +100,13 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
       Object.defineProperty(credential, 'toJSON', {
         value: function() { return {
           id: this.id,
-          rawId: byteArrayToBase64(new Uint8Array(this.rawId), true),
+          rawId: this.rawId,
           response: {
             // attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
             clientDataJSON: byteArrayToBase64(new Uint8Array(this.response.clientDataJSON)),
             authenticatorData: byteArrayToBase64(new Uint8Array(this.response.authenticatorData)),
             signature: byteArrayToBase64(new Uint8Array(this.response.signature)),
-            userHandle: byteArrayToBase64(new Uint8Array(this.response.userHandle)),
+            userHandle: byteArrayToBase64(this.response.userHandle),
           },
           type: this.type,
           authenticatorAttachment: this.authenticatorAttachment
@@ -129,6 +129,7 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
       // We need to remove the getTransports function from the object to prevent illegal invocation on many sites
       credential.response.getTransports = undefined;
 
+      logHelper("Returning credential:", credential)
       return credential;
     }).bind(navigator.credentials);
   }

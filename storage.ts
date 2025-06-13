@@ -49,82 +49,141 @@ const getWrappingKey = async (pin: string, salt: Uint8Array): Promise<CryptoKey>
     );
 };
 
-export const fetchKey = async (key: string, pin: string): Promise<CryptoKey> => {
-    // const key = await chrome.storage.sync.get(key)
+export const fetchKey = async (key: string, pin: string): Promise<any> => {
+    try {
+        const response = await chrome.storage.sync.get(key)
+        if (!!chrome.runtime.lastError) {
+            throw (chrome.runtime.lastError);
+        }
+        logHelper("Retrieved key:", response)
+        const payload = base64ToByteArray(response[key].key, true);
+        const saltByteLength = payload[0];
+        const ivByteLength = payload[1];
+        const keyAlgorithmByteLength = payload[2];
+        const wrappedKeyLength = payload[3];
+        let offset = 4;
+        const salt = payload.subarray(offset, offset + saltByteLength);
+        offset += saltByteLength;
+        const iv = payload.subarray(offset, offset + ivByteLength);
+        offset += ivByteLength;
+        const keyAlgorithmBytes = payload.subarray(offset, offset + keyAlgorithmByteLength);
+        offset += keyAlgorithmByteLength;
+        const keyBytes = payload.subarray(offset, offset + wrappedKeyLength);
+        offset += wrappedKeyLength;
+        const counter = payload[offset];
+        logHelper('In authentication function1.3.3');
+        const wrappingKey = await getWrappingKey(pin, salt);
+        const wrapAlgorithm: AesGcmParams = {
+            iv,
+            name: 'AES-GCM',
+        };
+        const unwrappingKeyAlgorithm = await JSON.parse(new TextDecoder().decode(keyAlgorithmBytes));
+        const unwrappedKey = await crypto.subtle.unwrapKey(
+            keyExportFormat,
+            keyBytes,
+            wrappingKey,
+            wrapAlgorithm,
+            unwrappingKeyAlgorithm,
+            true,
+            ['sign'],
+        )
+        return {key: unwrappedKey, userId: base64ToByteArray(response[key].userId, true)}
+    } catch (e) {
+        logHelper("Error caught in fetchKey!")
+        throw e
+    }
+    // return new Promise<CryptoKey>(async (res, rej) => {
+    //     chrome.storage.sync.get(key, async (resp) => {
+    //         const payload = base64ToByteArray(resp[key], true);
+    //         const saltByteLength = payload[0];
+    //         const ivByteLength = payload[1];
+    //         const keyAlgorithmByteLength = payload[2];
+    //         const wrappedKeyLength = payload[3];
+    //         let offset = 4;
+    //         const salt = payload.subarray(offset, offset + saltByteLength);
+    //         offset += saltByteLength;
+    //         const iv = payload.subarray(offset, offset + ivByteLength);
+    //         offset += ivByteLength;
+    //         const keyAlgorithmBytes = payload.subarray(offset, offset + keyAlgorithmByteLength);
+    //         offset += keyAlgorithmByteLength;
+    //         const keyBytes = payload.subarray(offset, offset + wrappedKeyLength);
+    //         offset += wrappedKeyLength;
+    //         const counter = payload[offset];
 
-    return new Promise<CryptoKey>(async (res, rej) => {
-        chrome.storage.sync.get(key, async (resp) => {
-            if (!!chrome.runtime.lastError) {
-                rej(chrome.runtime.lastError);
-                return;
-            }
-            const payload = base64ToByteArray(resp[key], true);
-            const saltByteLength = payload[0];
-            const ivByteLength = payload[1];
-            const keyAlgorithmByteLength = payload[2];
-            const wrappedKeyLength = payload[3];
-            let offset = 4;
-            const salt = payload.subarray(offset, offset + saltByteLength);
-            offset += saltByteLength;
-            const iv = payload.subarray(offset, offset + ivByteLength);
-            offset += ivByteLength;
-            const keyAlgorithmBytes = payload.subarray(offset, offset + keyAlgorithmByteLength);
-            offset += keyAlgorithmByteLength;
-            const keyBytes = payload.subarray(offset, offset + wrappedKeyLength);
-            offset += wrappedKeyLength;
-            const counter = payload[offset];
-
-            logHelper('In authentication function1.3.3');
-            const wrappingKey = await getWrappingKey(pin, salt);
-            const wrapAlgorithm: AesGcmParams = {
-                iv,
-                name: 'AES-GCM',
-            };
-            const unwrappingKeyAlgorithm = JSON.parse(new TextDecoder().decode(keyAlgorithmBytes));
-            crypto.subtle.unwrapKey(
-                keyExportFormat,
-                keyBytes,
-                wrappingKey,
-                wrapAlgorithm,
-                unwrappingKeyAlgorithm,
-                true,
-                ['sign'],
-            ).then(res, rej);
-        });
-    });
+    //         logHelper('In authentication function1.3.3');
+    //         const wrappingKey = await getWrappingKey(pin, salt);
+    //         const wrapAlgorithm: AesGcmParams = {
+    //             iv,
+    //             name: 'AES-GCM',
+    //         };
+    //         const unwrappingKeyAlgorithm = JSON.parse(new TextDecoder().decode(keyAlgorithmBytes));
+    //         crypto.subtle.unwrapKey(
+    //             keyExportFormat,
+    //             keyBytes,
+    //             wrappingKey,
+    //             wrapAlgorithm,
+    //             unwrappingKeyAlgorithm,
+    //             true,
+    //             ['sign'],
+    //         ).then(res, rej);
+    //     });
+    // });
 };
 
-export const incrementCounter = async (key: string, pin: string, incrementValue: number = 1): Promise<void> => {
-    return new Promise(async (res, rej) => {
-        chrome.storage.sync.get(key, async (resp) => {
-            if (!!chrome.runtime.lastError) {
-                rej(chrome.runtime.lastError);
-                return;
-            }
+export const incrementCounter = async (key: string, pin: string, userId: Uint8Array, incrementValue: number = 1,): Promise<void> => {
 
-            let payload = base64ToByteArray(resp[key], true);
-            const saltByteLength = payload[0];
-            const ivByteLength = payload[1];
-            const keyAlgorithmByteLength = payload[2];
-            const wrappedKeyLength = payload[3];
-            let offset = 4;
-            offset += saltByteLength;
-            offset += ivByteLength;
-            offset += keyAlgorithmByteLength;
-            offset += wrappedKeyLength;
+    try {
+        const response = await chrome.storage.sync.get(key)
+        if (!!chrome.runtime.lastError) {
+            throw (chrome.runtime.lastError);
+        }
+        let payload = base64ToByteArray(response[key].key, true);
+        const saltByteLength = payload[0];
+        const ivByteLength = payload[1];
+        const keyAlgorithmByteLength = payload[2];
+        const wrappedKeyLength = payload[3];
+        let offset = 4;
+        offset += saltByteLength;
+        offset += ivByteLength;
+        offset += keyAlgorithmByteLength;
+        offset += wrappedKeyLength;
+        // Update the counter
+        payload[offset] = payload[offset] + incrementValue;
+        chrome.storage.sync.set({ [key]: {"key": byteArrayToBase64(payload, true), "userId": byteArrayToBase64(userId)} })
+    } catch (e) {
+        logHelper("Error in incrementCounter");
+        throw e;
+    }
+    // return new Promise(async (res, rej) => {
+    //     chrome.storage.sync.get(key, async (resp) => {
+    //         if (!!chrome.runtime.lastError) {
+    //             rej(chrome.runtime.lastError);
+    //             return;
+    //         }
 
-            // Update the counder
-            payload[offset] = payload[offset] + incrementValue;
+    //         let payload = base64ToByteArray(resp[key].key, true);
+    //         const saltByteLength = payload[0];
+    //         const ivByteLength = payload[1];
+    //         const keyAlgorithmByteLength = payload[2];
+    //         const wrappedKeyLength = payload[3];
+    //         let offset = 4;
+    //         offset += saltByteLength;
+    //         offset += ivByteLength;
+    //         offset += keyAlgorithmByteLength;
+    //         offset += wrappedKeyLength;
 
-            chrome.storage.sync.set({ [key]: byteArrayToBase64(payload, true) }, () => {
-                if (!!chrome.runtime.lastError) {
-                    rej(chrome.runtime.lastError);
-                } else {
-                    res();
-                }
-            });
-        });
-    });
+    //         // Update the counder
+    //         payload[offset] = payload[offset] + incrementValue;
+
+    //         chrome.storage.sync.set({ [key]: {"key": byteArrayToBase64(payload, true), "userId": userId} }, () => {
+    //             if (!!chrome.runtime.lastError) {
+    //                 rej(chrome.runtime.lastError);
+    //             } else {
+    //                 res();
+    //             }
+    //         });
+    //     });
+    // });
 }
 
 export const fetchCounter = async (key: string, pin: string): Promise<number> => {
@@ -134,7 +193,7 @@ export const fetchCounter = async (key: string, pin: string): Promise<number> =>
                 rej(chrome.runtime.lastError);
                 return;
             }
-            const payload = base64ToByteArray(resp[key], true);
+            const payload = base64ToByteArray(resp[key].key, true);
             const saltByteLength = payload[0];
             const ivByteLength = payload[1];
             const keyAlgorithmByteLength = payload[2];
@@ -151,7 +210,7 @@ export const fetchCounter = async (key: string, pin: string): Promise<number> =>
     });
 }
 
-export const saveKey = (key: string, privateKey: CryptoKey, pin: string): Promise<void> => {
+export const saveKey = (key: string, privateKey: CryptoKey, pin: string, userId: Uint8Array): Promise<void> => {
     return new Promise<void>(async (res, rej) => {
         if (!pin) {
             rej('no pin provided');
@@ -181,7 +240,8 @@ export const saveKey = (key: string, privateKey: CryptoKey, pin: string): Promis
             keyAlgorithm,
             wrappedKey,
             Uint8Array.from([counter]));
-        chrome.storage.sync.set({ [key]: byteArrayToBase64(payload, true) }, () => {
+            logHelper("key:", payload);
+        chrome.storage.sync.set({ [key]: {"key": byteArrayToBase64(payload, true), "userId": byteArrayToBase64(userId, true)} }, () => {
             if (!!chrome.runtime.lastError) {
                 rej(chrome.runtime.lastError);
             } else {
