@@ -133,7 +133,7 @@ export const generateKeyRequestAndAttestation = async (
         const originalCredentialObject = JSON.parse(originalCredential)
         logHelper("Original credential", originalCredentialObject)
         // const keyIDArray: ArrayBuffer = originalCredentialObject.id as ArrayBuffer;
-        keyIDArray = originalCredentialObject.id
+        keyIDArray = base64ToByteArray(originalCredentialObject.rawId.data, true)
         keyID = originalCredentialObject.id
         logHelper("keyIDArray", keyIDArray)
         logHelper("keyIDArray", typeof keyIDArray)

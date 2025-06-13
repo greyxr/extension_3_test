@@ -73,21 +73,24 @@ function formatAAGUID(aaguidBytes) {
 }
 
 
-const good_cbor_string = 'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViUOusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWBdAAAAAOqbjWZNAR0hPOS2tIy1ddQAELtBHSxK38AfBIyMoLutT2alAQIDJiABIVgga35QvgMdrnLHnE-gK55utNvP6jDjmHLZwPMLs5eopd8iWCAP6ZObDry-g_uAINGMH3Wb1qlq6YoqdaJ8qkqsQvq1mg'
-const bad_cbor_string = 'o2dhdHRTdG10oGhhdXRoRGF0YViUOusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWBBAAAACgAAAAAAAAAAAAAAAAAAAAAAEHmWRVp6yL5EuDoSgCFziwqlAQIDJiABIVggLJSrHiIx3V-VTE53eNRvZOxQIUtAunFQf863Hyj8WZoiWCDXPR3_Q-WLIsnUfsUZTHBTPQJLj10lZ35nF6PzrZCdk2NmbXRkbm9uZQ'
+// const good_cbor_string = 'o2NmbXRkbm9uZWdhdHRTdG10oGhhdXRoRGF0YViUOusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWBdAAAAAOqbjWZNAR0hPOS2tIy1ddQAELtBHSxK38AfBIyMoLutT2alAQIDJiABIVgga35QvgMdrnLHnE-gK55utNvP6jDjmHLZwPMLs5eopd8iWCAP6ZObDry-g_uAINGMH3Wb1qlq6YoqdaJ8qkqsQvq1mg'
+// const bad_cbor_string = 'OusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWAFAAAADA-VTE53eNRvZOxQIUtAunFQf863Hyj8WZoiWCDXPR3_Q-WLIsnUfsUZTHBTPQJLj10lZ35nF6PzrZCdk2NmbXRkbm9uZQ'
 
-console.log('Decoding good cbor string')
-const good_cbor_bytes = decoded_func(good_cbor_string)
-const decoded_good_cbor = decodeFirstSync(good_cbor_bytes)
-const good_authData_buffer = decoded_good_cbor.authData
-const parsed_good_data = parseAuthData(good_authData_buffer)
-console.log(formatAAGUID(parsed_good_data.aaguid))
-console.log(parsed_good_data.flags)
+// console.log('Decoding good cbor string')
+// const good_cbor_bytes = decoded_func(good_cbor_string)
+// const decoded_good_cbor = decodeFirstSync(good_cbor_bytes)
+// const good_authData_buffer = decoded_good_cbor.authData
+// const parsed_good_data = parseAuthData(good_authData_buffer)
+// console.log(formatAAGUID(parsed_good_data.aaguid))
+// console.log(parsed_good_data.flags)
 
-console.log('Decoding bad cbor string')
-const bad_cbor_bytes = decoded_func(bad_cbor_string)
-const decoded_bad_cbor = decodeFirstSync(bad_cbor_bytes)
-const bad_authData_buffer = decoded_bad_cbor.authData
-const parsed_bad_data = parseAuthData(bad_authData_buffer)
-console.log(formatAAGUID(parsed_bad_data.aaguid))
-console.log(parsed_bad_data.flags)
+// console.log('Decoding bad cbor string')
+// const bad_cbor_bytes = decoded_func(bad_cbor_string)
+// const decoded_bad_cbor = decodeFirstSync(bad_cbor_bytes)
+// const bad_authData_buffer = decoded_bad_cbor.authData
+// const parsed_bad_data = parseAuthData(bad_authData_buffer)
+// console.log(formatAAGUID(parsed_bad_data.aaguid))
+// console.log(parsed_bad_data.flags)
+
+const goodauthDataEncoded = 'OusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWAdAAAAAA'
+const badauthDataEncoded = 'OusAJGA4HG8ljoOV0wJvVx8NmnZIjc2DdjmxOu0xZWAFAAAADA'

@@ -100,7 +100,7 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
       Object.defineProperty(credential, 'toJSON', {
         value: function() { return {
           id: this.id,
-          rawId: this.rawId,
+          rawId: byteArrayToBase64(this.rawId, true),
           response: {
             // attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
             clientDataJSON: byteArrayToBase64(new Uint8Array(this.response.clientDataJSON)),
