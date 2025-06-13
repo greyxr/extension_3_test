@@ -1,6 +1,10 @@
 import { ivLength, keyExportFormat, saltLength } from './constants';
 import { base64ToByteArray, byteArrayToBase64, concatenate } from './utils';
 
+function logHelper(...msg: any[]): void {
+    console.log('[Storage] ', msg);
+}
+
 export const keyExists = (key: string): Promise<boolean> => {
     return new Promise<boolean>(async (res, rej) => {
         chrome.storage.sync.get(key, (resp) => {
@@ -46,6 +50,8 @@ const getWrappingKey = async (pin: string, salt: Uint8Array): Promise<CryptoKey>
 };
 
 export const fetchKey = async (key: string, pin: string): Promise<CryptoKey> => {
+    // const key = await chrome.storage.sync.get(key)
+
     return new Promise<CryptoKey>(async (res, rej) => {
         chrome.storage.sync.get(key, async (resp) => {
             if (!!chrome.runtime.lastError) {
@@ -75,7 +81,7 @@ export const fetchKey = async (key: string, pin: string): Promise<CryptoKey> => 
                 name: 'AES-GCM',
             };
             const unwrappingKeyAlgorithm = JSON.parse(new TextDecoder().decode(keyAlgorithmBytes));
-            window.crypto.subtle.unwrapKey(
+            crypto.subtle.unwrapKey(
                 keyExportFormat,
                 keyBytes,
                 wrappingKey,

@@ -102,7 +102,7 @@ import { byteArrayToBase64, publicKeyCredentialToObject, webauthnParse, webauthn
           id: this.id,
           rawId: byteArrayToBase64(new Uint8Array(this.rawId), true),
           response: {
-            attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
+            // attestationObject: byteArrayToBase64(new Uint8Array(this.response.attestationObject)),
             clientDataJSON: byteArrayToBase64(new Uint8Array(this.response.clientDataJSON)),
             authenticatorData: byteArrayToBase64(new Uint8Array(this.response.authenticatorData)),
             signature: byteArrayToBase64(new Uint8Array(this.response.signature)),

@@ -124,26 +124,33 @@ export const generateKeyRequestAndAttestation = async (
     }
 
     let keyID;
+    let keyIDArray;
     if (originalCredential) {
         // Ignore allowCredentials as it will be a passkey
         logHelper("Passkey route with original credential", originalCredential)
         const originalCredentialObject = JSON.parse(originalCredential)
         logHelper("Original credential", originalCredentialObject)
         // const keyIDArray: ArrayBuffer = originalCredentialObject.id as ArrayBuffer;
-        keyID = byteArrayToBase64(new Uint8Array(originalCredentialObject.id))
+        keyIDArray = new Uint8Array(originalCredentialObject.rawId)
+        keyID = originalCredentialObject.id
+        logHelper("keyIDArray", keyIDArray)
+        logHelper("keyIDArray", typeof keyIDArray)
+        // keyID = byteArrayToBase64(keyIDArray, true)
         logHelper("keyID", keyID)
     } else {
         logHelper("U2F route")
         // For now we will only worry about the first entry
         const requestedCredential = publicKeyRequestOptions.allowCredentials[0];
         logHelper(requestedCredential);
-        const keyIDArray: ArrayBuffer = requestedCredential.id as ArrayBuffer;
+        const keyIDArray: ArrayBuffer = requestedCredential.id as ArrayBuffer; // TODO: Fix this for U2F support. KeyIDArray will be null for now later on
         logHelper('In authentication function1.2', keyIDArray);
         const keyID = byteArrayToBase64(new Uint8Array(keyIDArray), true);
         logHelper('In authentication function1.3', keyID);
     }
-    const keyIDArray = new ArrayBuffer(keyID) // Hacky but will work for now
+    logHelper("Fetching key")
     const key = await fetchKey(keyID, pin);
+
+    logHelper("Got key:", key)
 
     logHelper('In authentication function2');
 
@@ -155,6 +162,7 @@ export const generateKeyRequestAndAttestation = async (
         publicKeyRequestOptions.challenge as ArrayBuffer,
         {
             origin,
+            crossOrigin: 'false',
             type: 'webauthn.get',
         },
     );
